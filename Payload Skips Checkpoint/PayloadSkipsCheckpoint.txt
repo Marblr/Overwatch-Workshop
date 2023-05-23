@@ -1,0 +1,594 @@
+settings
+{
+	main
+	{
+		Description: "X1Z2T"
+		Mode Name: "Checkpoint Skipping"
+	}
+	lobby
+	{
+		Max Team 1 Players: 5
+		Max Team 2 Players: 5
+	}
+	modes
+	{
+		Escort
+		{
+			enabled maps
+			{
+			}
+			Competitive Rules: On
+		}
+		Hybrid
+		{
+			enabled maps
+			{
+				Blizzard World 972777519512068154
+			}
+			Capture Speed Modifier: 500%
+			Competitive Rules: On
+		}
+		disabled Practice Range
+		{
+			Training Partner: Off
+		}
+		General
+		{
+			Game Mode Start: Immediately
+			Hero Limit: Off
+			Tank Role Passive Health Bonus: Always Enabled
+		}
+	}
+	heroes
+	{
+		General
+		{
+			Spawn With Ultimate Ready: Off
+			Ultimate Generation: 100%
+			Ultimate Generation - Combat: 100%
+			Ultimate Generation - Passive: 100%
+			Tracer
+			{
+				Blink Cooldown Time: 0%
+			}
+			enabled heroes
+			{
+				Tracer
+			}
+		}
+	}
+}
+variables {
+    global:
+        0: BUTTON_ARRAY
+        1: KEYBIND_CYCLE
+        2: KEYBIND_TELEPORT
+        3: KEYBIND_TOUCH
+        4: ROLL_BACK_TIME
+        5: payloadPosition
+        6: payloadProgress
+        7: setupName
+        8: setupPos
+        9: setupRot
+        10: setupCount
+        11: i
+        12: timer
+        13: barColor
+        14: map
+}
+subroutines {
+    0: setup
+}
+rule ("Init Global Variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "user chosen keybinds"
+        Set Global Variable(BUTTON_ARRAY, Array(Button(Interact), Button(Reload), Button(Melee), Button(Ultimate), Button(Jump), Button(Crouch)));
+        Set Global Variable(KEYBIND_CYCLE, Value In Array(Global.BUTTON_ARRAY, Workshop Setting Combo(Custom String("Keybinds", Null, Null, Null), Custom String("Cycle Through Setups", Null, Null, Null), 1, Array(Custom String("INTERACT", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("CROUCH", Null, Null, Null)), 0)));
+        Set Global Variable(KEYBIND_TELEPORT, Value In Array(Global.BUTTON_ARRAY, Workshop Setting Combo(Custom String("Keybinds", Null, Null, Null), Custom String("Teleport to Setup", Null, Null, Null), 0, Array(Custom String("INTERACT", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("CROUCH", Null, Null, Null)), 1)));
+        Set Global Variable(KEYBIND_TOUCH, Value In Array(Global.BUTTON_ARRAY, Workshop Setting Combo(Custom String("Keybinds", Null, Null, Null), Custom String("Touch Payload", Null, Null, Null), 2, Array(Custom String("INTERACT", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("CROUCH", Null, Null, Null)), 2)));
+        "the amount of time it takes for the payload to roll backward"
+        Set Global Variable(ROLL_BACK_TIME, 10.00);
+        "contains setup coordinates for each map"
+        Set Global Variable(setupName, Empty Array);
+        Set Global Variable(setupPos, Empty Array);
+        Set Global Variable(setupRot, Empty Array);
+        Set Global Variable(setupCount, 0);
+        "the currently selected setup"
+        Set Global Variable(i, 0);
+        "used on HUD"
+        Set Global Variable(timer, 0);
+        Set Global Variable(barColor, Color(Rose));
+        "store the current map to fire setup rules"
+        Set Global Variable(map, Current Map);
+    }
+}
+
+rule ("Skip Assemble Heroes") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Is Assembling Heroes == True;
+    }
+    actions {
+        Set Match Time(0);
+    }
+}
+
+rule ("Skip Setup") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Is In Setup == True;
+    }
+    actions {
+        Set Match Time(0);
+    }
+}
+
+rule ("Set Timer to 10 Minutes") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Reload)) == True;
+    }
+    actions {
+        Wait(5, Abort When False);
+        Set Match Time(600);
+    }
+}
+
+rule ("End Match & Save Replay") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Crouch)) == True;
+        Is Button Held(Event Player, Button(Melee)) == True;
+        Is Button Held(Event Player, Button(Interact)) == True;
+    }
+    actions {
+        If(Compare(Current Game Mode, ==, Game Mode(Control)));
+            Declare Round Victory(Team Of(Event Player));
+        Else;
+            Set Match Time(5);
+    }
+}
+
+rule ("Setup Subroutine") {
+    event {
+        Subroutine;
+        setup;
+    }
+    actions {
+        "setup coordinates depend on the map (thanks to Coathar for help)"
+        If(Compare(Global.setupCount, >, 0));
+            Teleport(Event Player, Value In Array(Global.setupPos, Global.i));
+            Set Facing(Event Player, Value In Array(Global.setupRot, Global.i), To World);
+        Else;
+            Big Message(Event Player, Custom String("No setup available for {0}", Global.map, Null, Null));
+        End;
+    }
+}
+
+rule ("Teleport to Setup Position") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Global.KEYBIND_TELEPORT) == True;
+    }
+    actions {
+        Call Subroutine(setup);
+    }
+}
+
+rule ("Touch Payload") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is On Objective(Event Player) == False;
+        Is Button Held(Event Player, Global.KEYBIND_TOUCH) == True;
+    }
+    actions {
+        "advance the progress bar on the HUD"
+        Chase Global Variable Over Time(timer, 100, Global.ROLL_BACK_TIME, None);
+        "lock-out until the payload begins rolling backward after 10 seconds"
+        Wait(Global.ROLL_BACK_TIME, Abort When False);
+        "change the progress bar color"
+        Set Global Variable(barColor, Color(Lime Green));
+        "touch the payload as soon as it begins rolling backward"
+        Call Subroutine(setup);
+        Start Throttle In Direction(Event Player, Forward, 1, To Player, Replace existing throttle, None);
+        Wait(0.256, Ignore Condition);
+        Stop Throttle In Direction(Event Player);
+    }
+}
+
+rule ("Reset HUD Timer") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Or(Is On Objective(Event Player), Not(Is Button Held(Event Player, Global.KEYBIND_TOUCH))) == True;
+    }
+    actions {
+        "reset the progress bar when the \"touch payload\" rule becomes false"
+        Stop Chasing Global Variable(timer);
+        Set Global Variable(timer, 0);
+        Set Global Variable(barColor, Color(Rose));
+    }
+}
+
+rule ("Cycle Through Setups") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Global.setupCount > 1;
+        Is Button Held(Event Player, Global.KEYBIND_CYCLE) == True;
+    }
+    actions {
+        Modify Global Variable(i, Add, 1);
+        "cycle to the beginning if the maximum is reached"
+        If(Compare(Global.i, >=, Global.setupCount));
+            Set Global Variable(i, 0);
+    }
+}
+
+rule ("HUD Variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "if the payload position cannot be retrieved, display a user friendly message"
+        If(Compare(Payload Position, !=, Null));
+            Set Global Variable(payloadPosition, Payload Position);
+            Set Global Variable(payloadProgress, Custom String("{0}%", Payload Progress Percentage, Null, Null));
+        Else;
+            Set Global Variable(payloadPosition, Custom String("Unavailable", Null, Null, Null));
+            Set Global Variable(payloadProgress, Custom String("Unavailable", Null, Null, Null));
+        End;
+        "loop every tick"
+        Wait(0.016, Ignore Condition);
+        Loop;
+    }
+}
+
+rule ("HUD Display") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "debug information"
+        Create HUD Text(Local Player, Icon String(Happy), Custom String("Player Position                                      ", Null, Null, Null), Update Every Frame(Position Of(Local Player)), Left, 0, Custom Color(200, 200, 200, 255), Custom Color(200, 200, 200, 255), Color(White), Visible To and String, Visible Never);
+        Create HUD Text(Local Player, Icon String(Eye), Custom String("Player Facing Direction                   ", Null, Null, Null), Update Every Frame(Facing Direction Of(Local Player)), Left, 1, Custom Color(200, 200, 200, 255), Custom Color(200, 200, 200, 255), Color(White), Visible To and String, Visible Never);
+        Create HUD Text(Local Player, Null, Null, Custom String("•", Null, Null, Null), Left, 2, Null, Null, Custom Color(0, 0, 0, 0), Visible To, Visible Never);
+        Create HUD Text(Local Player, Icon String(Flag), Custom String("Payload Position                                   ", Null, Null, Null), Global.payloadPosition, Left, 3, Custom Color(200, 200, 200, 255), Custom Color(200, 200, 200, 255), Color(White), Visible To and String, Visible Never);
+        Create HUD Text(Local Player, Icon String(Bolt), Custom String("Payload Progress                                ", Null, Null, Null), Global.payloadProgress, Left, 4, Custom Color(200, 200, 200, 255), Custom Color(200, 200, 200, 255), Color(White), Visible To and String, Visible Never);
+        "script instructions"
+        Create Progress Bar HUD Text(Local Player, Global.timer, Custom String("[{0}] Current setup: {1} ({2}", Input Binding String(Global.KEYBIND_CYCLE), Value In Array(Global.setupName, Global.i), Custom String("{0}/{1})\n[{2}", Add(Global.i, 1), Global.setupCount, Custom String("{0}] Teleport to the setup location\n[{1}] Hold to touch payload", Input Binding String(Global.KEYBIND_TELEPORT), Input Binding String(Global.KEYBIND_TOUCH), Null))), Right, -1, Global.barColor, Custom Color(200, 200, 200, 255), Visible To Values and Color, Visible Never);
+    }
+}
+
+disabled rule ("Testing: Nudge Forward") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Crouch)) == False;
+        Is Button Held(Event Player, Button(Ultimate)) == True;
+    }
+    actions {
+        Teleport(Event Player, Add(Position Of(Event Player), Multiply(Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)), 0), 0.01)));
+    }
+}
+
+disabled rule ("Testing: Nudge Backward") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Crouch)) == True;
+        Is Button Held(Event Player, Button(Ultimate)) == True;
+    }
+    actions {
+        Teleport(Event Player, Subtract(Position Of(Event Player), Multiply(Direction From Angles(Horizontal Angle From Direction(Facing Direction Of(Event Player)), 0), 0.01)));
+    }
+}
+
+rule ("Re-enable all heroes") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Set Player Allowed Heroes(Event Player, All Heroes);
+    }
+}
+
+rule ("SETUP: Circuit Royal") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Circuit Royal);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(3.21, 5.82, -3.01));
+        Set Global Variable At Index(setupRot, 0, Vector(0.48, 0, -0.88));
+        Set Global Variable At Index(setupName, 1, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(48.51, 15.01, -8.21));
+        Set Global Variable At Index(setupRot, 1, Vector(0.78, -0.01, -0.63));
+    }
+}
+
+rule ("SETUP: Dorado") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Dorado);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(66.58, 6.63, -15.21));
+        Set Global Variable At Index(setupRot, 0, Vector(0.89, 0, 0.41));
+        Set Global Variable At Index(setupName, 1, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(122.60, 10.83, 24.10));
+        Set Global Variable At Index(setupRot, 1, Vector(0.97, 0, 0.24));
+        Set Global Variable At Index(setupName, 2, Custom String("Gate B Open", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 2, Vector(139.12, 11, 28.22));
+        Set Global Variable At Index(setupRot, 2, Vector(0.97, 0, 0.24));
+    }
+}
+
+rule ("SETUP: Havana") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Havana);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(-17.81, 5.85, -79.27));
+        Set Global Variable At Index(setupRot, 0, Vector(1, 0, 0));
+        Set Global Variable At Index(setupName, 1, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(52.49, 5.82, -83.25));
+        Set Global Variable At Index(setupRot, 1, Vector(1, 0, 0));
+    }
+}
+
+rule ("SETUP: Junkertown") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Junkertown);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(-29.23, 4.43, -47.28));
+        Set Global Variable At Index(setupRot, 0, Vector(-0.5, 0, -0.86));
+        Set Global Variable At Index(setupName, 1, Custom String("Gate A Close", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(-35.27, 4.69, -63.31));
+        Set Global Variable At Index(setupRot, 1, Vector(-0.81, 0, -0.58));
+        Set Global Variable At Index(setupName, 2, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 2, Vector(-56.4, 7.26, -96.93));
+        Set Global Variable At Index(setupRot, 2, Vector(-0.2, 0, -0.98));
+        Set Global Variable At Index(setupName, 3, Custom String("Gate B Close", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 3, Vector(-56.25, 7.51, -113.07));
+        Set Global Variable At Index(setupRot, 3, Vector(-0.48, 0, -0.87));
+    }
+}
+
+rule ("SETUP: Rialto") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Rialto);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(45.77, -0.4, -69));
+        Set Global Variable At Index(setupRot, 0, Vector(-1, 0, 0));
+        Set Global Variable At Index(setupName, 1, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(-20.33, -1.4, -67.17));
+        Set Global Variable At Index(setupRot, 1, Vector(-1, 0, 0));
+    }
+}
+
+rule ("SETUP: Route 66") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Route 66);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(18.41, 2.09, -1.01));
+        Set Global Variable At Index(setupRot, 0, Vector(-0.59, -0.03, -0.8));
+        Set Global Variable At Index(setupName, 1, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(-48.74, 3.31, -14.36));
+        Set Global Variable At Index(setupRot, 1, Vector(-0.51, 0, 0.86));
+    }
+}
+
+rule ("SETUP: Shambali Monastery") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Shambali Monastery);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(-28.21, 14.76, 80.82));
+        Set Global Variable At Index(setupRot, 0, Vector(1, 0, 0.06));
+        Set Global Variable At Index(setupName, 1, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(-9.74, 24.88, 116.42));
+        Set Global Variable At Index(setupRot, 1, Vector(-0.01, 0, 1));
+    }
+}
+
+rule ("SETUP: Watchpoint: Gibraltar") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Watchpoint: Gibraltar);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint A", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(19.97, -5.16, -78.48));
+        Set Global Variable At Index(setupRot, 0, Vector(0.69, 0.03, 0.72));
+        Set Global Variable At Index(setupName, 1, Custom String("Gate A Close", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(28.98, -5.16, -65.98));
+        Set Global Variable At Index(setupRot, 1, Vector(0.99, -0.04, 0.10));
+        Set Global Variable At Index(setupName, 2, Custom String("Checkpoint B", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 2, Vector(65.58, -3.14, -33.22));
+        Set Global Variable At Index(setupRot, 2, Vector(0.70, 0, 0.71));
+    }
+}
+
+rule ("SETUP: B­lizzard World") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Or(Compare(Global.map, ==, Map(Blizzard World)), Compare(Global.map, ==, Map(Blizzard World Winter))) == True;
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(-59.3, -0.4, 103.99));
+        Set Global Variable At Index(setupRot, 0, Vector(0.63, 0, 0.77));
+    }
+}
+
+rule ("SETUP: Eichenwalde") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Or(Compare(Global.map, ==, Map(Eichenwalde)), Compare(Global.map, ==, Map(Eichenwalde Halloween))) == True;
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Gate Open", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(20.97, 4.83, -58.32));
+        Set Global Variable At Index(setupRot, 0, Vector(0.96, 0, -0.27));
+        Set Global Variable At Index(setupName, 1, Custom String("Checkpoint", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 1, Vector(86.15, 12.66, -74.93));
+        Set Global Variable At Index(setupRot, 1, Vector(0.25, 0, 0.97));
+    }
+}
+
+rule ("SETUP: Hollywood") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Or(Compare(Global.map, ==, Map(Hollywood)), Compare(Global.map, ==, Map(Hollywood Halloween))) == True;
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(5.24, 1.85, -69.5));
+        Set Global Variable At Index(setupRot, 0, Vector(-0.47, 0, -0.88));
+    }
+}
+
+rule ("SETUP: King's Row") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Or(Compare(Global.map, ==, Map(King's Row)), Compare(Global.map, ==, Map(King's Row Winter))) == True;
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(-93.11, 0.93, -9.77));
+        Set Global Variable At Index(setupRot, 0, Vector(-0.98, 0, 0.17));
+    }
+}
+
+rule ("SETUP: Midtown") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Midtown);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(56.11, 3.58, -22.06));
+        Set Global Variable At Index(setupRot, 0, Vector(1, 0, 0));
+    }
+}
+
+rule ("SETUP: Numbani") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Numbani);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(147.68, -4.17, 15.74));
+        Set Global Variable At Index(setupRot, 0, Vector(0.58, 0, -0.81));
+    }
+}
+
+rule ("SETUP: Paraiso") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.map == Map(Paraíso);
+    }
+    actions {
+        Set Global Variable At Index(setupName, 0, Custom String("Checkpoint", Null, Null, Null));
+        Set Global Variable At Index(setupPos, 0, Vector(2.40, 4.83, -94.28));
+        Set Global Variable At Index(setupRot, 0, Vector(0.88, 0, 0.47));
+    }
+}
+
+rule ("SETUP: STORE COUNT") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Wait(0.016, Ignore Condition);
+        Set Global Variable(setupCount, Count Of(Global.setupName));
+    }
+}
+
