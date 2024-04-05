@@ -1,0 +1,364 @@
+settings
+{
+	main
+	{
+		Description: "Draw a visualization of spawn points in the level. Last updated: 2024-04-05"
+		Mode Name: "Spawn Points"
+	}
+	modes
+	{
+		Assault
+		{
+			enabled maps
+			{
+			}
+			Capture Speed Modifier: 500%
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Respawn Time Scalar: 10%
+			Tank Role Passive Health Bonus: Always Enabled
+		}
+		Control
+		{
+			enabled maps
+			{
+			}
+			Capture Speed Modifier: 500%
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Respawn Time Scalar: 10%
+			Score To Win: 3
+			Scoring Speed Modifier: 500%
+			Tank Role Passive Health Bonus: Always Enabled
+		}
+		Escort
+		{
+			enabled maps
+			{
+			}
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Payload Speed Modifier: 500%
+			Respawn Time Scalar: 10%
+			Tank Role Passive Health Bonus: Always Enabled
+		}
+		Flashpoint
+		{
+			enabled maps
+			{
+			}
+			Capture Speed Modifier: 500%
+			Respawn Time Scalar: 10%
+			Score To Win: 5
+		}
+		Hybrid
+		{
+			enabled maps
+			{
+				King's Row 972777519512068153
+			}
+			Capture Speed Modifier: 500%
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Payload Speed Modifier: 500%
+			Respawn Time Scalar: 10%
+			Tank Role Passive Health Bonus: Always Enabled
+		}
+		disabled Practice Range
+		{
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Respawn Time Scalar: 10%
+			Tank Role Passive Health Bonus: Always Enabled
+			Training Partner: Off
+		}
+		Push
+		{
+			enabled maps
+			{
+			}
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Respawn Time Scalar: 10%
+			Tank Role Passive Health Bonus: Always Enabled
+			TS-1 Push Speed Modifier: 500%
+			TS-1 Walk Speed Modifier: 500%
+		}
+		Team Deathmatch
+		{
+			enabled maps
+			{
+			}
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Respawn Time Scalar: 10%
+			Tank Role Passive Health Bonus: Always Enabled
+		}
+	}
+	heroes
+	{
+		General
+		{
+			Spawn With Ultimate Ready: On
+			Ultimate Generation: 500%
+			Ultimate Generation - Combat: 500%
+			Ultimate Generation - Passive: 500%
+		}
+	}
+}
+variables {
+    global:
+        0: i
+        1: arrayPointsTeam1
+        2: arrayPointsTeam2
+        3: arrayPointsAll
+        4: objPos
+        5: n0
+        6: n1
+        7: n2
+        8: player
+        9: avg0
+        10: avg1
+        11: avg2
+    player:
+        0: isChangingHero
+        1: pos
+        2: rot
+}
+rule ("Init Global Variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Disable Inspector Recording;
+        Set Global Variable(i, 0);
+        Set Global Variable(arrayPointsTeam1, Empty Array);
+        Set Global Variable(arrayPointsTeam2, Empty Array);
+        Set Global Variable(arrayPointsAll, Empty Array);
+        Set Global Variable(objPos, Vector(0, 0, 0));
+        Set Global Variable(n0, 0);
+        Set Global Variable(n1, 0);
+        Set Global Variable(n2, 0);
+        Set Global Variable(player, Null);
+        Set Global Variable(avg0, Vector(0, 0, 0));
+        Set Global Variable(avg1, Vector(0, 0, 0));
+        Set Global Variable(avg2, Vector(0, 0, 0));
+    }
+}
+
+rule ("Init Player Variables") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    actions {
+        Set Player Variable(Event Player, isChangingHero, False);
+        Set Player Variable(Event Player, pos, Vector(0, 0, 0));
+        Set Player Variable(Event Player, rot, Vector(0, 0, 0));
+    }
+}
+
+rule ("Change Hero Anywhere") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        Is Button Held(Event Player, Button(Melee)) == True;
+    }
+    actions {
+        Wait(1, Abort When False);
+        Set Player Variable(Event Player, pos, Position Of(Event Player));
+        Set Player Variable(Event Player, rot, Facing Direction Of(Event Player));
+        Set Player Allowed Heroes(Event Player, Remove From Array(All Heroes, Hero Of(Event Player)));
+        Set Player Allowed Heroes(Event Player, All Heroes);
+        Wait(0.016, Ignore Condition);
+        Set Player Variable(Event Player, isChangingHero, True);
+    }
+}
+
+rule ("Restore Position and Facing") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).isChangingHero == True;
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Wait(0.016, Ignore Condition);
+        Teleport(Event Player, (Event Player).pos);
+        Set Facing(Event Player, (Event Player).rot, To World);
+        Set Player Variable(Event Player, isChangingHero, False);
+    }
+}
+
+rule ("Reset All Cooldowns") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Melee)) == True;
+    }
+    actions {
+        Set Ultimate Charge(All Players(All Teams), 100);
+        Set Ability Cooldown(All Players(All Teams), Button(Ability 1), 0);
+        Set Ability Cooldown(All Players(All Teams), Button(Ability 2), 0);
+        Set Ability Cooldown(All Players(All Teams), Button(Secondary Fire), 0);
+    }
+}
+
+rule ("Skip Assemble Heroes") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Is Assembling Heroes == True;
+    }
+    actions {
+        Set Match Time(0);
+    }
+}
+
+rule ("Skip Setup") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Is In Setup == True;
+    }
+    actions {
+        Set Match Time(0);
+    }
+}
+
+rule ("Set Timer to 10 Minutes") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Reload)) == True;
+    }
+    actions {
+        Wait(1, Abort When False);
+        Set Match Time(600);
+    }
+}
+
+rule ("End Match & Save Replay") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Crouch)) == True;
+        Is Button Held(Event Player, Button(Melee)) == True;
+        Is Button Held(Event Player, Button(Interact)) == True;
+    }
+    actions {
+        If(Compare(Current Game Mode, ==, Game Mode(Control)));
+            Declare Round Victory(Team Of(Event Player));
+        Else;
+            Set Match Time(5);
+    }
+}
+
+rule ("Cache Player") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Slot 0;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Set Global Variable(player, Event Player);
+        Create HUD Text(Event Player, Null, Null, Custom String("Press INTERACT [{0}] to display spawn points.", Input Binding String(Button(Interact)), Null, Null), Top, 99, Null, Null, Color(White), Visible To and String, Default Visibility);
+    }
+}
+
+rule ("Display Spawn Points") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Is Button Held(Global.player, Button(Interact)) == True;
+    }
+    actions {
+        "reset state"
+        Destroy All HUD Text;
+        Destroy All In-World Text;
+        Destroy All Effects;
+        Set Global Variable(arrayPointsTeam1, Empty Array);
+        Set Global Variable(arrayPointsTeam2, Empty Array);
+        Set Global Variable(arrayPointsAll, Empty Array);
+        Set Global Variable(avg0, Vector(0, 0, 0));
+        Set Global Variable(avg1, Vector(0, 0, 0));
+        Set Global Variable(avg2, Vector(0, 0, 0));
+        Wait(0.016, Ignore Condition);
+        "draw a visualization of spawn points in the level\r\n in deathmatch maps, iterate though all spawns - otherwise separate by team"
+        If(Or(Compare(Current Game Mode, ==, Game Mode(Team Deathmatch)), Compare(Current Game Mode, ==, Game Mode(Deathmatch))));
+            Set Global Variable(n0, Count Of(Spawn Points(All Teams)));
+            "All Teams"
+            For Global Variable(i, 0, Global.n0, 1);
+                Set Global Variable At Index(arrayPointsAll, Global.i, Value In Array(Spawn Points(All Teams), Global.i));
+                Create HUD Text(All Players(All Teams), Null, Null, Custom String("[{0}] {1}", Add(Global.i, 1), Position Of(Value In Array(Global.arrayPointsAll, Global.i)), Null), Left, Add(Add(Global.i, Count Of(Global.arrayPointsTeam1)), Count Of(Global.arrayPointsTeam2)), Null, Null, Custom Color(Add(180, Multiply(Global.i, Divide(64, Global.n0))), Add(180, Multiply(Global.i, Divide(64, Global.n0))), Add(180, Multiply(Global.i, Divide(64, Global.n0))), 255), Visible To, Visible Always);
+                Create In-World Text(All Players(All Teams), Add(Global.i, 1), Add(Position Of(Value In Array(Global.arrayPointsAll, Global.i)), Vector(0, -0.75, 0)), 2, Do Not Clip, Visible To, Custom Color(Add(180, Multiply(Global.i, Divide(64, Global.n0))), Add(180, Multiply(Global.i, Divide(64, Global.n0))), Add(180, Multiply(Global.i, Divide(64, Global.n0))), 255), Visible Always);
+                Create Effect(All Players(All Teams), Sphere, Color(White), Position Of(Value In Array(Global.arrayPointsAll, Global.i)), 0.25, Visible To);
+                Create Beam Effect(All Players(All Teams), Grapple Beam, Position Of(Value In Array(Global.arrayPointsAll, Global.i)), Add(Position Of(Value In Array(Global.arrayPointsAll, Global.i)), Multiply(Facing Direction Of(Value In Array(Global.arrayPointsAll, Global.i)), 0.5)), Color(White), Visible To);
+                Modify Global Variable(avg0, Add, Position Of(Value In Array(Global.arrayPointsAll, Global.i)));
+                Wait(0.064, Ignore Condition);
+            End;
+            Modify Global Variable(avg0, Divide, Global.n0);
+            Create Effect(All Players(All Teams), Sphere, Color(Orange), Global.avg0, 0.25, Visible To);
+            Create HUD Text(All Players(All Teams), Null, Null, Global.avg0, Top, 1, Null, Null, Color(Orange), Visible To, Default Visibility);
+        Else;
+            Set Global Variable(n1, Count Of(Spawn Points(Team 1)));
+            Set Global Variable(n2, Count Of(Spawn Points(Team 2)));
+            "Team 1"
+            For Global Variable(i, 0, Global.n1, 1);
+                Set Global Variable At Index(arrayPointsTeam1, Global.i, Value In Array(Spawn Points(Team 1), Global.i));
+                Create HUD Text(All Players(All Teams), Null, Null, Custom String("[{0}] {1} • {2}", Add(Global.i, 1), Position Of(Value In Array(Global.arrayPointsTeam1, Global.i)), Facing Direction Of(Value In Array(Global.arrayPointsTeam1, Global.i))), Left, Global.i, Null, Null, Custom Color(Add(80, Multiply(Global.i, Divide(90, Global.n1))), Add(160, Multiply(Global.i, Divide(90, Global.n1))), 255, 255), Visible To, Visible Always);
+                Create In-World Text(All Players(All Teams), Add(Global.i, 1), Add(Position Of(Value In Array(Global.arrayPointsTeam1, Global.i)), Vector(0, -0.75, 0)), 2, Do Not Clip, Visible To, Custom Color(Add(80, Multiply(Global.i, Divide(90, Global.n1))), Add(160, Multiply(Global.i, Divide(90, Global.n1))), 255, 255), Visible Always);
+                Create Effect(All Players(All Teams), Sphere, Color(Sky Blue), Position Of(Value In Array(Global.arrayPointsTeam1, Global.i)), 0.25, Visible To);
+                Create Beam Effect(All Players(All Teams), Grapple Beam, Position Of(Value In Array(Global.arrayPointsTeam1, Global.i)), Add(Position Of(Value In Array(Global.arrayPointsTeam1, Global.i)), Multiply(Facing Direction Of(Value In Array(Global.arrayPointsTeam1, Global.i)), 0.5)), Color(White), Visible To);
+                Modify Global Variable(avg1, Add, Position Of(Value In Array(Global.arrayPointsTeam1, Global.i)));
+                Wait(0.064, Ignore Condition);
+            End;
+            Create HUD Text(All Players(All Teams), Null, Custom String("•", Null, Null, Null), Null, Left, Count Of(Global.arrayPointsTeam1), Null, Custom Color(0, 0, 0, 0), Null, Visible To, Visible Always);
+            "Team 2"
+            For Global Variable(i, 0, Global.n2, 1);
+                Set Global Variable At Index(arrayPointsTeam2, Global.i, Value In Array(Spawn Points(Team 2), Global.i));
+                Create HUD Text(All Players(All Teams), Null, Null, Custom String("[{0}] {1} • {2}", Add(Global.i, 1), Position Of(Value In Array(Global.arrayPointsTeam2, Global.i)), Facing Direction Of(Value In Array(Global.arrayPointsTeam2, Global.i))), Left, Add(Global.i, Count Of(Global.arrayPointsTeam1)), Null, Null, Custom Color(255, Add(90, Multiply(Global.i, Divide(90, Global.n2))), Add(110, Multiply(Global.i, Divide(90, Global.n2))), 255), Visible To, Visible Always);
+                Create In-World Text(All Players(All Teams), Add(Global.i, 1), Add(Position Of(Value In Array(Global.arrayPointsTeam2, Global.i)), Vector(0, -1, 0)), 2, Do Not Clip, Visible To, Custom Color(255, Add(90, Multiply(Global.i, Divide(90, Global.n2))), Add(110, Multiply(Global.i, Divide(90, Global.n2))), 255), Visible Always);
+                Create Effect(All Players(All Teams), Sphere, Color(Red), Position Of(Value In Array(Global.arrayPointsTeam2, Global.i)), 0.25, Visible To);
+                Create Beam Effect(All Players(All Teams), Grapple Beam, Position Of(Value In Array(Global.arrayPointsTeam2, Global.i)), Add(Position Of(Value In Array(Global.arrayPointsTeam2, Global.i)), Multiply(Facing Direction Of(Value In Array(Global.arrayPointsTeam2, Global.i)), 0.5)), Color(White), Visible To);
+                Modify Global Variable(avg2, Add, Position Of(Value In Array(Global.arrayPointsTeam2, Global.i)));
+                Wait(0.064, Ignore Condition);
+            End;
+            Create HUD Text(All Players(All Teams), Null, Custom String("•", Null, Null, Null), Null, Left, Add(Count Of(Global.arrayPointsTeam1), Count Of(Global.arrayPointsTeam2)), Null, Custom Color(0, 0, 0, 0), Null, Visible To, Visible Always);
+            Modify Global Variable(avg1, Divide, Global.n1);
+            Modify Global Variable(avg2, Divide, Global.n2);
+            Set Global Variable(objPos, If-Then-Else(Compare(Current Game Mode, ==, Game Mode(Push)), Payload Position, Objective Position(Objective Index)));
+            Wait(0.064, Ignore Condition);
+            Create HUD Text(All Players(All Teams), Null, Null, Custom String("[C] {0}", Global.objPos, Null, Null), Left, 999, Null, Null, Custom Color(200, 200, 200, 255), Visible To, Visible Always);
+            Create In-World Text(All Players(All Teams), Custom String("•", Null, Null, Null), Global.objPos, 4, Do Not Clip, Visible To, Custom Color(200, 200, 200, 255), Visible Always);
+            Create In-World Text(All Players(All Teams), Custom String("•", Null, Null, Null), Global.avg1, 4, Do Not Clip, Visible To, Custom Color(110, 190, 255, 255), Visible Always);
+            Create In-World Text(All Players(All Teams), Custom String("•", Null, Null, Null), Global.avg2, 4, Do Not Clip, Visible To, Custom Color(255, 120, 140, 255), Visible Always);
+            Create HUD Text(All Players(All Teams), Null, Null, Custom String("Team 1 Distance to Objective: {0}", Distance Between(Global.avg1, Global.objPos), Null, Null), Right, -2, Null, Null, Custom Color(110, 190, 255, 255), Visible To, Visible Never);
+            Create HUD Text(All Players(All Teams), Null, Null, Custom String("Team 2 Distance to Objective: {0}", Distance Between(Global.avg2, Global.objPos), Null, Null), Right, -1, Null, Null, Custom Color(255, 120, 140, 255), Visible To, Visible Never);
+    }
+}
+
