@@ -1,0 +1,605 @@
+settings
+{
+	main
+	{
+		Description: "Create and destroy bots that press buttons.\n\nCode: C2N23\nLast updated: 2024-05-16"
+		Mode Name: "Spawn Bots 2.0"
+	}
+	lobby
+	{
+		Max Team 1 Players: 5
+		Max Team 2 Players: 5
+	}
+	modes
+	{
+		Assault
+		{
+			enabled maps
+			{
+			}
+		}
+		Control
+		{
+			enabled maps
+			{
+			}
+		}
+		Escort
+		{
+			enabled maps
+			{
+			}
+		}
+		Flashpoint
+		{
+			enabled maps
+			{
+			}
+		}
+		Hybrid
+		{
+			enabled maps
+			{
+				Hollywood 972777519512068154
+			}
+		}
+		disabled Practice Range
+		{
+			Training Partner: Off
+		}
+		Push
+		{
+			enabled maps
+			{
+			}
+		}
+		Team Deathmatch
+		{
+			enabled maps
+			{
+			}
+		}
+		General
+		{
+			Game Mode Start: Manual
+			Hero Limit: Off
+			Tank Role Passive Health Bonus: Always Enabled
+		}
+	}
+	heroes
+	{
+		General
+		{
+			Spawn With Ultimate Ready: On
+			Ultimate Generation: 500%
+			Ultimate Generation - Combat: 500%
+			Ultimate Generation - Passive: 500%
+		}
+	}
+	extensions
+	{
+		Spawn More Dummy Bots
+	}
+}
+variables {
+    global:
+        0: HERO_COLORS
+        1: TRANSFORMATIVE_ULTS
+        2: PLACEMENT_ULTS
+        3: BUTTONS
+        4: KEYBIND_MENU_A
+        5: KEYBIND_MENU_B
+        6: KEYBIND_CREATE_BOT
+        7: KEYBIND_DESTROY_BOT
+        8: KEYBIND_CYCLE_HERO_FORWARD
+        9: KEYBIND_CYCLE_HERO_BACK
+        10: KEYBIND_CYCLE_BUTTON_FORWARD
+        11: KEYBIND_CYCLE_BUTTON_BACK
+        12: KEYBIND_SWAP_TEAM
+        13: KEYBIND_PRESS_BUTTON
+        14: KEYBIND_RESET_COOLDOWNS
+        15: KEYBIND_CHANGE_HERO
+        16: dummies
+        17: i
+        18: isFFA
+    player:
+        0: mode
+        1: showHUD
+        2: showInstructions
+        3: heroIndex
+        4: buttonIndex
+        5: teamIndex
+        6: entityHit
+        7: buttonToPress
+        8: pressButton
+        9: spawnFacing
+        10: isChangingHero
+        11: pos
+        12: rot
+}
+subroutines {
+    0: buildBotArray
+}
+rule ("Initialize global variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Set Global Variable(HERO_COLORS, Array(Custom Color(122, 46, 73, 255), Custom Color(222, 122, 0, 255), Custom Color(250, 242, 173, 255), Custom Color(178, 168, 101, 255), Custom Color(186, 76, 63, 255), Custom Color(124, 139, 140, 255), Custom Color(0, 88, 188, 255), Custom Color(143, 146, 174, 255), Custom Color(139, 63, 143, 255), Custom Color(91, 115, 81, 255), Custom Color(118, 180, 201, 255), Custom Color(252, 238, 90, 255), Custom Color(128, 251, 0, 255), Custom Color(174, 111, 28, 255), Custom Color(166, 41, 39, 255), Custom Color(231, 162, 23, 255), Custom Color(246, 94, 166, 255), Custom Color(68, 82, 117, 255), Custom Color(103, 197, 25, 255), Custom Color(252, 121, 189, 255), Custom Color(70, 154, 240, 255), Custom Color(81, 40, 169, 255), Custom Color(130, 62, 53, 255), Custom Color(72, 105, 158, 255), Custom Color(16, 111, 4, 255), Custom Color(145, 82, 77, 255), Custom Color(151, 114, 229, 255), Custom Color(220, 147, 67, 255), Custom Color(215, 62, 44, 255), Custom Color(110, 108, 106, 255), Custom Color(137, 200, 255, 255), Custom Color(40, 165, 195, 255), Custom Color(208, 70, 86, 255), Custom Color(87, 159, 207, 255), Custom Color(124, 139, 140, 255), Custom Color(125, 85, 199, 255), Custom Color(225, 165, 186, 255), Custom Color(219, 66, 22, 255), Custom Color(165, 140, 84, 255), Custom Color(121, 97, 78, 255)));
+        Set Global Variable(TRANSFORMATIVE_ULTS, Array(Hero(Doomfist), Hero(Orisa), Hero(Roadhog), Hero(Sigma), Hero(Bastion), Hero(Junkrat), Hero(Sojourn), Hero(Soldier: 76), Hero(Torbjörn), Hero(Illari), Hero(Venture)));
+        Set Global Variable(PLACEMENT_ULTS, Array(Hero(Symmetra), Hero(Baptiste), Hero(Lifeweaver)));
+        Set Global Variable(BUTTONS, Array(Button(Primary Fire), Button(Secondary Fire), Button(Ability 1), Button(Ability 2), Button(Ultimate), Button(Jump), Button(Melee), Button(Crouch), Button(Reload), Button(Interact)));
+        Set Global Variable(KEYBIND_MENU_A, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Toggle Bot Menu (First Button)", Null, Null, Null), 8, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 0)));
+        Set Global Variable(KEYBIND_MENU_B, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Toggle Bot Menu (Second Button)", Null, Null, Null), 9, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 1)));
+        Set Global Variable(KEYBIND_CREATE_BOT, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Create Bot", Null, Null, Null), 1, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 2)));
+        Set Global Variable(KEYBIND_DESTROY_BOT, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Destroy Bot", Null, Null, Null), 0, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 3)));
+        Set Global Variable(KEYBIND_CYCLE_HERO_FORWARD, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Cycle Hero Forward", Null, Null, Null), 6, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 4)));
+        Set Global Variable(KEYBIND_CYCLE_HERO_BACK, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Cycle Hero Backward", Null, Null, Null), 2, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 5)));
+        Set Global Variable(KEYBIND_CYCLE_BUTTON_FORWARD, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Cycle Button Forward", Null, Null, Null), 3, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 6)));
+        Set Global Variable(KEYBIND_CYCLE_BUTTON_BACK, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Cycle Button Backward", Null, Null, Null), 4, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 7)));
+        Set Global Variable(KEYBIND_SWAP_TEAM, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Swap Team", Null, Null, Null), 7, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 8)));
+        Set Global Variable(KEYBIND_PRESS_BUTTON, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Bot Keybinds", Null, Null, Null), Custom String("Press Button", Null, Null, Null), 9, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 9)));
+        Set Global Variable(KEYBIND_RESET_COOLDOWNS, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Other Keybinds", Null, Null, Null), Custom String("Reset All Cooldowns", Null, Null, Null), 6, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 10)));
+        Set Global Variable(KEYBIND_CHANGE_HERO, Value In Array(Global.BUTTONS, Workshop Setting Combo(Custom String("Other Keybinds", Null, Null, Null), Custom String("Change Hero (Hold)", Null, Null, Null), 6, Array(Custom String("PRIMARY FIRE", Null, Null, Null), Custom String("SECONDARY FIRE", Null, Null, Null), Custom String("ABILITY 1", Null, Null, Null), Custom String("ABILITY 2", Null, Null, Null), Custom String("ULTIMATE", Null, Null, Null), Custom String("JUMP", Null, Null, Null), Custom String("MELEE", Null, Null, Null), Custom String("CROUCH", Null, Null, Null), Custom String("RELOAD", Null, Null, Null), Custom String("INTERACT", Null, Null, Null)), 11)));
+        Set Global Variable(dummies, Empty Array);
+        Set Global Variable(i, 0);
+        Set Global Variable(isFFA, Or(Or(Compare(Current Game Mode, ==, Game Mode(Deathmatch)), Compare(Current Game Mode, ==, Game Mode(Snowball Deathmatch))), Compare(Current Game Mode, ==, Game Mode(Bounty Hunter))));
+    }
+}
+
+rule ("Initialize player variables") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    actions {
+        Set Player Variable(Event Player, mode, 0);
+        Set Player Variable(Event Player, showHUD, False);
+        Set Player Variable(Event Player, showInstructions, True);
+        Set Player Variable(Event Player, heroIndex, 0);
+        Set Player Variable(Event Player, buttonIndex, 0);
+        Set Player Variable(Event Player, teamIndex, 1);
+        Set Player Variable(Event Player, entityHit, Null);
+        Set Player Variable(Event Player, isChangingHero, False);
+        Set Player Variable(Event Player, pos, Vector(0, 0, 0));
+        Set Player Variable(Event Player, rot, Vector(0, 0, 0));
+    }
+}
+
+rule ("Disable Inspector") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Disable Inspector Recording;
+    }
+}
+
+rule ("Change Hero Anywhere") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        Is Button Held(Event Player, Global.KEYBIND_CHANGE_HERO) == True;
+    }
+    actions {
+        Wait(1, Abort When False);
+        Set Player Variable(Event Player, pos, Position Of(Event Player));
+        Set Player Variable(Event Player, rot, Facing Direction Of(Event Player));
+        Set Player Allowed Heroes(Event Player, Remove From Array(All Heroes, Hero Of(Event Player)));
+        Set Player Allowed Heroes(Event Player, All Heroes);
+        Wait(0.016, Ignore Condition);
+        Set Player Variable(Event Player, isChangingHero, True);
+    }
+}
+
+rule ("Restore Position and Facing") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).isChangingHero == True;
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Wait(0.016, Ignore Condition);
+        Teleport(Event Player, (Event Player).pos);
+        Set Facing(Event Player, (Event Player).rot, To World);
+        Set Player Variable(Event Player, isChangingHero, False);
+    }
+}
+
+rule ("Reset All Cooldowns") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Global.KEYBIND_RESET_COOLDOWNS) == True;
+    }
+    actions {
+        Set Ultimate Charge(All Players(All Teams), 100);
+        Set Ability Cooldown(All Players(All Teams), Button(Ability 1), 0);
+        Set Ability Cooldown(All Players(All Teams), Button(Ability 2), 0);
+        Set Ability Cooldown(All Players(All Teams), Button(Secondary Fire), 0);
+        Set Ability Cooldown(All Players(All Teams), Button(Crouch), 0);
+        Set Ability Cooldown(All Players(All Teams), Button(Jump), 0);
+    }
+}
+
+rule ("Skip Assemble Heroes") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Is Assembling Heroes == True;
+    }
+    actions {
+        Set Match Time(0);
+    }
+}
+
+rule ("Skip Setup") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Is In Setup == True;
+    }
+    actions {
+        Set Match Time(0);
+    }
+}
+
+rule ("End Match & Save Replay") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Button Held(Event Player, Button(Crouch)) == True;
+        Is Button Held(Event Player, Button(Melee)) == True;
+        Is Button Held(Event Player, Button(Interact)) == True;
+    }
+    actions {
+        Wait(0.50, Abort When False);
+        If(Compare(Current Game Mode, ==, Game Mode(Control)));
+            Declare Round Victory(Team Of(Event Player));
+        Else;
+            Set Match Time(5);
+    }
+}
+
+rule ("Subroutine buildBotArray") {
+    event {
+        Subroutine;
+        buildBotArray;
+    }
+    actions {
+        Set Global Variable(dummies, Filtered Array(All Players(All Teams), Is Dummy Bot(Current Array Element)));
+    }
+}
+
+rule ("Instructions HUD") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+    }
+    actions {
+        Create HUD Text(If-Then-Else((Event Player).showInstructions, Event Player, Null), Null, Custom String("TOGGLE BOT MENU", Null, Null, Null), Null, Top, 98, Null, Custom Color(255, 170, 30, 255), Null, Visible To, Default Visibility);
+        Create HUD Text(If-Then-Else((Event Player).showInstructions, Event Player, Null), Null, Null, Custom String("[{0}] + [{1}]", Input Binding String(Global.KEYBIND_MENU_A), Input Binding String(Global.KEYBIND_MENU_B), Null), Top, 99, Null, Null, Color(White), Visible To and String, Default Visibility);
+    }
+}
+
+rule ("Edit Mode HUD") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+    }
+    actions {
+        "hero selection"
+        Create HUD Text(If-Then-Else((Event Player).showHUD, Event Player, Null), Hero Icon String(Value In Array(All Heroes, (Event Player).heroIndex)), Custom String("<— [{0}] PREV     NEXT [{1}] —> {2}", Input Binding String(Global.KEYBIND_CYCLE_HERO_BACK), Input Binding String(Global.KEYBIND_CYCLE_HERO_FORWARD), Custom String("                                                                                                                                                                          ", Null, Null, Null)), Value In Array(All Heroes, (Event Player).heroIndex), Left, 1, Value In Array(Global.HERO_COLORS, (Event Player).heroIndex), Custom Color(210, 210, 210, 255), Custom Color(255, 255, 255, 255), Visible To String and Color, Default Visibility);
+        Create HUD Text(If-Then-Else((Event Player).showHUD, Event Player, Null), Null, Custom String("•", Null, Null, Null), Null, Left, 2, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Default Visibility);
+        "button selection"
+        Create HUD Text(If-Then-Else((Event Player).showHUD, Event Player, Null), Input Binding String(Value In Array(Global.BUTTONS, (Event Player).buttonIndex)), Custom String("<— [{0}] PREV     NEXT [{1}] —> {2}", Input Binding String(Global.KEYBIND_CYCLE_BUTTON_BACK), Input Binding String(Global.KEYBIND_CYCLE_BUTTON_FORWARD), Custom String("                                                                                                                                                                          ", Null, Null, Null)), Value In Array(Global.BUTTONS, (Event Player).buttonIndex), Left, 3, Custom Color(210, 210, 210, 255), Custom Color(210, 210, 210, 255), Custom Color(255, 255, 255, 255), Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else((Event Player).showHUD, Event Player, Null), Null, Custom String("•", Null, Null, Null), Null, Left, 4, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Default Visibility);
+        "team selection (non-FFA only)"
+        Create HUD Text(If-Then-Else(And((Event Player).showHUD, Not(Global.isFFA)), Event Player, Null), Custom String("♪", Null, Null, Null), Custom String("[{0}] SWAP TEAM {1}", Input Binding String(Global.KEYBIND_SWAP_TEAM), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null), Custom String("{0}", Value In Array(Array(Team 1, Team 2), (Event Player).teamIndex), Null, Null), Left, 5, If-Then-Else(Compare((Event Player).teamIndex, ==, 0), Custom Color(37, 212, 252, 255), Custom Color(239, 47, 82, 255)), Custom Color(210, 210, 210, 255), Custom Color(255, 255, 255, 255), Visible To String and Color, Default Visibility);
+        Create HUD Text(If-Then-Else(And((Event Player).showHUD, Not(Global.isFFA)), Event Player, Null), Null, Custom String("•", Null, Null, Null), Null, Left, 6, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Default Visibility);
+        "create and destroy"
+        Create HUD Text(If-Then-Else((Event Player).showHUD, Event Player, Null), Null, Custom String("[{0}] CREATE BOT {1}", Input Binding String(Global.KEYBIND_CREATE_BOT), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null), Null, Left, 7, Null, Custom Color(210, 210, 210, 255), Null, Visible To and String, Default Visibility);
+        Create HUD Text(If-Then-Else((Event Player).showHUD, Event Player, Null), Null, Custom String("[{0}] DESTROY BOT (HOLD TO DESTROY ALL) {1}", Input Binding String(Global.KEYBIND_DESTROY_BOT), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null), Null, Left, 8, Null, Custom Color(210, 210, 210, 255), Null, Visible To and String, Default Visibility);
+    }
+}
+
+rule ("Enter Play Mode") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 0;
+    }
+    actions {
+        Set Player Variable(Event Player, showHUD, False);
+        Allow Button(Event Player, Global.KEYBIND_CREATE_BOT);
+        Allow Button(Event Player, Global.KEYBIND_DESTROY_BOT);
+        Allow Button(Event Player, Global.KEYBIND_CYCLE_BUTTON_BACK);
+        Allow Button(Event Player, Global.KEYBIND_CYCLE_BUTTON_FORWARD);
+        Allow Button(Event Player, Global.KEYBIND_CYCLE_HERO_BACK);
+        Allow Button(Event Player, Global.KEYBIND_CYCLE_HERO_FORWARD);
+        Allow Button(Event Player, Global.KEYBIND_SWAP_TEAM);
+        Allow Button(Event Player, Global.KEYBIND_PRESS_BUTTON);
+        Allow Button(Event Player, Global.KEYBIND_MENU_A);
+        Allow Button(Event Player, Global.KEYBIND_MENU_B);
+    }
+}
+
+rule ("Enter Edit Mode") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+    }
+    actions {
+        Set Player Variable(Event Player, showHUD, True);
+        Disallow Button(Event Player, Global.KEYBIND_CREATE_BOT);
+        Disallow Button(Event Player, Global.KEYBIND_DESTROY_BOT);
+        Disallow Button(Event Player, Global.KEYBIND_CYCLE_BUTTON_BACK);
+        Disallow Button(Event Player, Global.KEYBIND_CYCLE_BUTTON_FORWARD);
+        Disallow Button(Event Player, Global.KEYBIND_CYCLE_HERO_BACK);
+        Disallow Button(Event Player, Global.KEYBIND_CYCLE_HERO_FORWARD);
+        Disallow Button(Event Player, Global.KEYBIND_SWAP_TEAM);
+        Disallow Button(Event Player, Global.KEYBIND_PRESS_BUTTON);
+        Disallow Button(Event Player, Global.KEYBIND_MENU_A);
+        Disallow Button(Event Player, Global.KEYBIND_MENU_B);
+    }
+}
+
+rule ("Toggle Mode") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        Is Button Held(Event Player, Global.KEYBIND_MENU_A) == True;
+        Is Button Held(Event Player, Global.KEYBIND_MENU_B) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, mode, Modulo(Add((Event Player).mode, 1), 2));
+        Set Player Variable(Event Player, showInstructions, False);
+    }
+}
+
+rule ("Cycle Hero Forward") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+        Is Button Held(Event Player, Global.KEYBIND_CYCLE_HERO_FORWARD) == True;
+        (Event Player).heroIndex < Subtract(Count Of(All Heroes), 1);
+    }
+    actions {
+        Modify Player Variable(Event Player, heroIndex, Add, 1);
+    }
+}
+
+rule ("Cycle Hero Backward") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+        Is Button Held(Event Player, Global.KEYBIND_CYCLE_HERO_BACK) == True;
+        (Event Player).heroIndex > 0;
+    }
+    actions {
+        Modify Player Variable(Event Player, heroIndex, Subtract, 1);
+    }
+}
+
+rule ("Cycle Button Forward") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+        Is Button Held(Event Player, Global.KEYBIND_CYCLE_BUTTON_FORWARD) == True;
+        (Event Player).buttonIndex < Subtract(Count Of(Global.BUTTONS), 1);
+    }
+    actions {
+        Modify Player Variable(Event Player, buttonIndex, Add, 1);
+    }
+}
+
+rule ("Cycle Button Backward") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+        Is Button Held(Event Player, Global.KEYBIND_CYCLE_BUTTON_BACK) == True;
+        (Event Player).buttonIndex > 0;
+    }
+    actions {
+        Modify Player Variable(Event Player, buttonIndex, Subtract, 1);
+    }
+}
+
+rule ("Swap Team") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+        Is Button Held(Event Player, Global.KEYBIND_SWAP_TEAM) == True;
+        Is Button Held(Event Player, Global.KEYBIND_PRESS_BUTTON) == False;
+    }
+    actions {
+        "assumes only two teams"
+        Set Player Variable(Event Player, teamIndex, Subtract(1, (Event Player).teamIndex));
+    }
+}
+
+rule ("Create Bot") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+        Is Button Held(Event Player, Global.KEYBIND_CREATE_BOT) == True;
+    }
+    actions {
+        Create Dummy Bot(Value In Array(All Heroes, (Event Player).heroIndex), If-Then-Else(Global.isFFA, All Teams, Value In Array(Array(Team 1, Team 2), (Event Player).teamIndex)), -1, Position Of(Event Player), Facing Direction Of(Event Player));
+        Set Player Variable(Last Created Entity, buttonToPress, Value In Array(Global.BUTTONS, (Event Player).buttonIndex));
+        Set Player Variable(Last Created Entity, spawnFacing, Facing Direction Of(Event Player));
+        Disable Movement Collision With Players(Last Created Entity);
+        Call Subroutine(buildBotArray);
+    }
+}
+
+rule ("Set Bot Facing Direction") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == True;
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        "bots always spawn with a neutral pitch, so we need to set it again shortly after spawning"
+        Wait(0.1, Ignore Condition);
+        Set Facing(Event Player, (Event Player).spawnFacing, To World);
+    }
+}
+
+rule ("Destroy Bot") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 1;
+        Is Button Held(Event Player, Global.KEYBIND_DESTROY_BOT) == True;
+    }
+    actions {
+        "BUG: raycast does not hit players in spawn rooms (is there intangibility?)"
+        Set Player Variable(Event Player, entityHit, Ray Cast Hit Player(Eye Position(Event Player), Add(Eye Position(Event Player), Multiply(Facing Direction Of(Event Player), 100)), All Players(All Teams), Event Player, False));
+        Destroy Dummy Bot(Team Of((Event Player).entityHit), Slot Of((Event Player).entityHit));
+        Set Player Variable(Event Player, entityHit, Null);
+        Call Subroutine(buildBotArray);
+        "if the delete button is held, delete them all"
+        Wait(3, Abort When False);
+        Destroy All Dummy Bots;
+        Call Subroutine(buildBotArray);
+    }
+}
+
+rule ("Detect Start Holding Button") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 0;
+        Is Button Held(Event Player, Button(Reload)) == False;
+        Is Button Held(Event Player, Global.KEYBIND_PRESS_BUTTON) == True;
+    }
+    actions {
+        Set Player Variable(Global.dummies, pressButton, True);
+    }
+}
+
+rule ("Actually Start Holding Button") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == True;
+        (Event Player).pressButton == True;
+    }
+    actions {
+        "special case: heroes who need to manually place ults"
+        If(And(Array Contains(Global.PLACEMENT_ULTS, Hero Of(Event Player)), Compare((Event Player).buttonToPress, ==, Button(Ultimate))));
+            Press Button(Event Player, Button(Ultimate));
+            Wait(1, Ignore Condition);
+            Press Button(Event Player, Button(Primary Fire));
+        "special case: heroes with transformative ults"
+        Else If(And(Array Contains(Global.TRANSFORMATIVE_ULTS, Hero Of(Event Player)), Is Using Ultimate(Event Player)));
+            Start Holding Button(Event Player, If-Then-Else(Compare(Hero Of(Event Player), ==, Hero(Sojourn)), Button(Secondary Fire), Button(Primary Fire)));
+        Else;
+            Start Holding Button(Event Player, (Event Player).buttonToPress);
+    }
+}
+
+rule ("Stop Holding Button") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is Dummy Bot(Event Player) == False;
+        (Event Player).mode == 0;
+        Is Button Held(Event Player, Global.KEYBIND_PRESS_BUTTON) == False;
+    }
+    actions {
+        For Global Variable(i, 0, Count Of(Global.BUTTONS), 1);
+            Stop Holding Button(Global.dummies, Value In Array(Global.BUTTONS, Global.i));
+        End;
+        Set Player Variable(Global.dummies, pressButton, False);
+    }
+}
+
