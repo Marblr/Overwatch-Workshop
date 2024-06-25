@@ -1,157 +1,53 @@
 settings {
     "main": {
-        "description": "Draw a visualization of spawn points in the level. Last updated: 2024-04-05",
+        "description": "Draw a visualization of spawn points in the level.\n\nCode: W402R\nLast updated: 2024-06-24",
         "modeName": "Spawn Points"
     },
-    "gamemodes": {
-        "assault": {
-            "enabledMaps": [],
-            "captureSpeed%": 500,
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "respawnTime%": 10,
-            "tankPassiveHealthBonus": "alwaysEnabled"
-        },
-        "control": {
-            "enabledMaps": [],
-            "captureSpeed%": 500,
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "respawnTime%": 10,
-            "scoreToWin": 3,
-            "scoringSpeed%": 500,
-            "tankPassiveHealthBonus": "alwaysEnabled"
-        },
-        "escort": {
-            "enabledMaps": [],
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "payloadSpeed%": 500,
-            "respawnTime%": 10,
-            "tankPassiveHealthBonus": "alwaysEnabled"
-        },
-        "flashpoint": {
-            "enabledMaps": [],
-            "captureSpeed%": 500,
-            "respawnTime%": 10,
-            "scoreToWin": 5
-        },
-        "hybrid": {
-            "enabledMaps": [
-                {
-                    "kingsRow": [
-                        "night"
-                    ]
-                }
-            ],
-            "captureSpeed%": 500,
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "payloadSpeed%": 500,
-            "respawnTime%": 10,
-            "tankPassiveHealthBonus": "alwaysEnabled"
-        },
-        "practiceRange": {
-            "enabled": false,
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "respawnTime%": 10,
-            "tankPassiveHealthBonus": "alwaysEnabled",
-            "enableTrainingPartner": false
-        },
-        "push": {
-            "enabledMaps": [],
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "respawnTime%": 10,
-            "tankPassiveHealthBonus": "alwaysEnabled",
-            "ts1PushSpeedModifier%": 500,
-            "ts1WalkSpeedModifier%": 500
-        },
-        "tdm": {
-            "enabledMaps": [],
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "respawnTime%": 10,
-            "tankPassiveHealthBonus": "alwaysEnabled"
-        }
+    "lobby": {
+        "team1Slots": 5,
+        "team2Slots": 5
     },
-    "heroes": {
-        "allTeams": {
-            "general": {
-                "enableSpawningWithUlt": true,
-                "ultGen%": 500,
-                "combatUltGen%": 500,
-                "passiveUltGen%": 500
-            }
-        }
+    "gamemodes": {
+        "control": {},
+        "escort": {},
+        "hybrid": {},
+        "push": {},
+        "general": {}
     }
 }
 
 #Global variables
 
-globalvar i
-globalvar arrayPointsTeam1
-globalvar arrayPointsTeam2
-globalvar arrayPointsAll
+globalvar i = 0
+globalvar arrayPointsTeam1 = []
+globalvar arrayPointsTeam2 = []
+globalvar arrayPointsAll = []
+    
+globalvar objPos = vect(0, 0, 0)
 
-globalvar objPos
+globalvar n0 = 0
+globalvar n1 = 0
+globalvar n2 = 0
+    
+globalvar player = null
+    
+globalvar avg0 = vect(0, 0, 0)
+globalvar avg1 = vect(0, 0, 0)
+globalvar avg2 = vect(0, 0, 0)
 
-globalvar n0
-globalvar n1
-globalvar n2
-
-globalvar player
-
-globalvar avg0
-globalvar avg1
-globalvar avg2
+globalvar showInstructions = true
 
 
 #Player variables
 
-playervar isChangingHero
-playervar pos
-playervar rot
+playervar isChangingHero = false
+playervar pos = vect(0, 0, 0)
+playervar rot = vect(0, 0, 0)
 
 
-#Activated extensions
-
-
-####################
-###    GLOBAL    ###
-####################
-
-rule "Init Global Variables":
-    @Event global
-
-    disableInspector()
-
-    i = 0
-    arrayPointsTeam1 = []
-    arrayPointsTeam2 = []
-    arrayPointsAll = []
-
-    objPos = vect(0, 0, 0)
-    
-    n0 = 0
-    n1 = 0
-    n2 = 0
-
-    player = null
-
-    avg0 = vect(0, 0, 0)
-    avg1 = vect(0, 0, 0)
-    avg2 = vect(0, 0, 0)
-    
-
-rule "Init Player Variables":
-    @Event eachPlayer
-    
-    eventPlayer.isChangingHero = false
-    eventPlayer.pos = vect(0, 0, 0)
-    eventPlayer.rot = vect(0, 0, 0)
-
+#######################
+###    UTILITIES    ###
+#######################
 
 rule "Change Hero Anywhere":
     @Event eachPlayer
@@ -221,22 +117,24 @@ rule "End Match & Save Replay":
         setMatchTime(5)
     
     
-#####################
-###    SCRIPTS    ###
-#####################
+##########################
+###    SPAWN POINTS    ###
+##########################
     
-rule "Cache Player":
+rule "Instruction Text":
     @Event eachPlayer
-    @Slot 0
+    @Condition showInstructions == true
     @Condition eventPlayer.hasSpawned() == true
 
-    player = eventPlayer
     hudSubtext(eventPlayer, "Press INTERACT [{0}] to display spawn points.".format(buttonString(Button.INTERACT)), HudPosition.TOP, 99, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
 
 rule "Display Spawn Points":
     @Event global
-    @Condition player.isHoldingButton(Button.INTERACT) == true
+    @Condition getAllPlayers().isHoldingButton(Button.INTERACT) == true
+
+    # user knows the controls
+    showInstructions = false
 
     # reset state
     destroyAllHudTexts()
@@ -311,11 +209,14 @@ rule "Display Spawn Points":
         # look for asymmetries between team spawns and objective
         avg1 /= n1
         avg2 /= n2
+        
+        # BUG: starting with season 11, there are 3 separate Push gamemodes all named "Push".
+        # this causes the game mode comparison to fail and not display the correct value for push.
         objPos = getPayloadPosition() if getCurrentGamemode() == Gamemode.PUSH else getObjectivePosition(getCurrentObjective())
         wait(0.064)
 
         hudSubtext(getAllPlayers(), "[C] {0}".format(objPos), HudPosition.LEFT, 999, rgb(200, 200, 200), HudReeval.VISIBILITY, SpecVisibility.ALWAYS)
-        createInWorldText(getAllPlayers(), "•", objPos, 4, Clip.NONE, WorldTextReeval.VISIBILITY, rgb(200, 200, 200), SpecVisibility.ALWAYS)
+        createInWorldText(getAllPlayers(), "•", objPos, 4, Clip.NONE, WorldTextReeval.VISIBILITY_AND_POSITION, rgb(200, 200, 200), SpecVisibility.ALWAYS)
 
         createInWorldText(getAllPlayers(), "•", avg1, 4, Clip.NONE, WorldTextReeval.VISIBILITY, rgb(110, 190, 255), SpecVisibility.ALWAYS)
         createInWorldText(getAllPlayers(), "•", avg2, 4, Clip.NONE, WorldTextReeval.VISIBILITY, rgb(255, 120, 140), SpecVisibility.ALWAYS)

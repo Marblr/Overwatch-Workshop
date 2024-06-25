@@ -2,107 +2,30 @@ settings
 {
 	main
 	{
-		Description: "Draw a visualization of spawn points in the level. Last updated: 2024-04-05"
+		Description: "Draw a visualization of spawn points in the level.\n\nCode: W402R\nLast updated: 2024-06-24"
 		Mode Name: "Spawn Points"
+	}
+	lobby
+	{
+		Max Team 1 Players: 5
+		Max Team 2 Players: 5
 	}
 	modes
 	{
-		Assault
-		{
-			enabled maps
-			{
-			}
-			Capture Speed Modifier: 500%
-			Game Mode Start: Manual
-			Hero Limit: Off
-			Respawn Time Scalar: 10%
-			Tank Role Passive Health Bonus: Always Enabled
-		}
 		Control
 		{
-			enabled maps
-			{
-			}
-			Capture Speed Modifier: 500%
-			Game Mode Start: Manual
-			Hero Limit: Off
-			Respawn Time Scalar: 10%
-			Score To Win: 3
-			Scoring Speed Modifier: 500%
-			Tank Role Passive Health Bonus: Always Enabled
 		}
 		Escort
 		{
-			enabled maps
-			{
-			}
-			Game Mode Start: Manual
-			Hero Limit: Off
-			Payload Speed Modifier: 500%
-			Respawn Time Scalar: 10%
-			Tank Role Passive Health Bonus: Always Enabled
-		}
-		Flashpoint
-		{
-			enabled maps
-			{
-			}
-			Capture Speed Modifier: 500%
-			Respawn Time Scalar: 10%
-			Score To Win: 5
 		}
 		Hybrid
 		{
-			enabled maps
-			{
-				King's Row 972777519512068153
-			}
-			Capture Speed Modifier: 500%
-			Game Mode Start: Manual
-			Hero Limit: Off
-			Payload Speed Modifier: 500%
-			Respawn Time Scalar: 10%
-			Tank Role Passive Health Bonus: Always Enabled
-		}
-		disabled Practice Range
-		{
-			Game Mode Start: Manual
-			Hero Limit: Off
-			Respawn Time Scalar: 10%
-			Tank Role Passive Health Bonus: Always Enabled
-			Training Partner: Off
 		}
 		Push
 		{
-			enabled maps
-			{
-			}
-			Game Mode Start: Manual
-			Hero Limit: Off
-			Respawn Time Scalar: 10%
-			Tank Role Passive Health Bonus: Always Enabled
-			TS-1 Push Speed Modifier: 500%
-			TS-1 Walk Speed Modifier: 500%
 		}
-		Team Deathmatch
-		{
-			enabled maps
-			{
-			}
-			Game Mode Start: Manual
-			Hero Limit: Off
-			Respawn Time Scalar: 10%
-			Tank Role Passive Health Bonus: Always Enabled
-		}
-	}
-	heroes
-	{
 		General
 		{
-			Spawn With Ultimate Ready: On
-			Ultimate Generation: 500%
-			Ultimate Generation - Combat: 500%
-			Ultimate Generation - Passive: 500%
 		}
 	}
 }
@@ -120,17 +43,17 @@ variables {
         9: avg0
         10: avg1
         11: avg2
+        12: showInstructions
     player:
         0: isChangingHero
         1: pos
         2: rot
 }
-rule ("Init Global Variables") {
+rule ("Initialize global variables") {
     event {
         Ongoing - Global;
     }
     actions {
-        Disable Inspector Recording;
         Set Global Variable(i, 0);
         Set Global Variable(arrayPointsTeam1, Empty Array);
         Set Global Variable(arrayPointsTeam2, Empty Array);
@@ -143,10 +66,11 @@ rule ("Init Global Variables") {
         Set Global Variable(avg0, Vector(0, 0, 0));
         Set Global Variable(avg1, Vector(0, 0, 0));
         Set Global Variable(avg2, Vector(0, 0, 0));
+        Set Global Variable(showInstructions, True);
     }
 }
 
-rule ("Init Player Variables") {
+rule ("Initialize player variables") {
     event {
         Ongoing - Each Player;
         All;
@@ -274,17 +198,17 @@ rule ("End Match & Save Replay") {
     }
 }
 
-rule ("Cache Player") {
+rule ("Instruction Text") {
     event {
         Ongoing - Each Player;
         All;
-        Slot 0;
+        All;
     }
     conditions {
+        Global.showInstructions == True;
         Has Spawned(Event Player) == True;
     }
     actions {
-        Set Global Variable(player, Event Player);
         Create HUD Text(Event Player, Null, Null, Custom String("Press INTERACT [{0}] to display spawn points.", Input Binding String(Button(Interact)), Null, Null), Top, 99, Null, Null, Color(White), Visible To and String, Default Visibility);
     }
 }
@@ -294,9 +218,11 @@ rule ("Display Spawn Points") {
         Ongoing - Global;
     }
     conditions {
-        Is Button Held(Global.player, Button(Interact)) == True;
+        Is Button Held(All Players(All Teams), Button(Interact)) == True;
     }
     actions {
+        "user knows the controls"
+        Set Global Variable(showInstructions, False);
         "reset state"
         Destroy All HUD Text;
         Destroy All In-World Text;
@@ -351,10 +277,11 @@ rule ("Display Spawn Points") {
             Create HUD Text(All Players(All Teams), Null, Custom String("•", Null, Null, Null), Null, Left, Add(Count Of(Global.arrayPointsTeam1), Count Of(Global.arrayPointsTeam2)), Null, Custom Color(0, 0, 0, 0), Null, Visible To, Visible Always);
             Modify Global Variable(avg1, Divide, Global.n1);
             Modify Global Variable(avg2, Divide, Global.n2);
+            "BUG: starting with season 11, there are 3 separate Push gamemodes all named \"Push\".\r\n this causes the game mode comparison to fail and not display the correct value for push."
             Set Global Variable(objPos, If-Then-Else(Compare(Current Game Mode, ==, Game Mode(Push)), Payload Position, Objective Position(Objective Index)));
             Wait(0.064, Ignore Condition);
             Create HUD Text(All Players(All Teams), Null, Null, Custom String("[C] {0}", Global.objPos, Null, Null), Left, 999, Null, Null, Custom Color(200, 200, 200, 255), Visible To, Visible Always);
-            Create In-World Text(All Players(All Teams), Custom String("•", Null, Null, Null), Global.objPos, 4, Do Not Clip, Visible To, Custom Color(200, 200, 200, 255), Visible Always);
+            Create In-World Text(All Players(All Teams), Custom String("•", Null, Null, Null), Global.objPos, 4, Do Not Clip, Visible To and Position, Custom Color(200, 200, 200, 255), Visible Always);
             Create In-World Text(All Players(All Teams), Custom String("•", Null, Null, Null), Global.avg1, 4, Do Not Clip, Visible To, Custom Color(110, 190, 255, 255), Visible Always);
             Create In-World Text(All Players(All Teams), Custom String("•", Null, Null, Null), Global.avg2, 4, Do Not Clip, Visible To, Custom Color(255, 120, 140, 255), Visible Always);
             Create HUD Text(All Players(All Teams), Null, Null, Custom String("Team 1 Distance to Objective: {0}", Distance Between(Global.avg1, Global.objPos), Null, Null), Right, -2, Null, Null, Custom Color(110, 190, 255, 255), Visible To, Visible Never);
