@@ -1,0 +1,670 @@
+settings
+{
+	main
+	{
+		Description: "It's Overwatch, but there's fall damage.\n\nCode: 4H2EC\nLast updated: 2024-08-24"
+		Mode Name: "Fall Damage"
+	}
+	lobby
+	{
+		Max Team 1 Players: 5
+		Max Team 2 Players: 5
+	}
+	modes
+	{
+		Control
+		{
+		}
+		Escort
+		{
+		}
+		Hybrid
+		{
+		}
+		Push
+		{
+		}
+		Team Deathmatch
+		{
+			enabled maps
+			{
+				Workshop Island
+			}
+		}
+		General
+		{
+			Limit Roles: 1 Tank 2 Offense 2 Support
+		}
+	}
+	extensions
+	{
+		Explosion Sounds
+		Buff and Debuff Sounds
+	}
+}
+variables {
+    global:
+        0: DEBUG
+        1: DEBUG_FEED_MAX
+        2: LOG_STATS
+        3: statMatchDuration
+        4: statReplayDuration
+        5: statDamageTaken
+        6: statDamageTakenPerHero
+        7: statDeaths
+        8: statDeathsPerHero
+        9: statFallDamageTaken
+        10: statFallDamageTakenPerHero
+        11: statFallDeaths
+        12: statFallDeathsPerHero
+        13: statPlaytimePerHero
+        14: statFallDeathsTimeline
+        15: i
+        16: logString
+        17: C_FLOATING_HEROES
+        18: C_TERMINAL_VELOCITY
+        19: FALL_DAMAGE_INSTANTLY_KILLS
+        20: RANDOM_SPREAD_PERCENTAGE
+        21: FLOATING_HEROES_ALWAYS_IMMUNE
+        22: ANNOUNCE_FALL_DEATHS
+        23: VELOCITY_THRESHOLD
+        24: KNOCKBACK_CREDIT_TIME
+    player:
+        0: debug_feed_array
+        1: debug_feed_num
+        2: t
+        3: cachedHeroIndex
+        4: switchedHero
+        5: fallVelocity
+        6: fallDamage
+        7: fallDamageTaken
+        8: fallImmunityState
+        9: recentKnockbacker
+}
+rule ("Initialize global variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Set Global Variable(DEBUG, Workshop Setting Toggle(Custom String("Technical Settings", Null, Null, Null), Custom String("Show Debug Information", Null, Null, Null), False, 1));
+        Set Global Variable(DEBUG_FEED_MAX, 5);
+        Set Global Variable(LOG_STATS, Workshop Setting Toggle(Custom String("Technical Settings", Null, Null, Null), Custom String("Record Statistics", Null, Null, Null), False, 0));
+        Set Global Variable(statMatchDuration, 0);
+        Set Global Variable(statReplayDuration, 0);
+        Set Global Variable(statDamageTaken, 0);
+        Set Global Variable(statDamageTakenPerHero, Empty Array);
+        Set Global Variable(statDeaths, 0);
+        Set Global Variable(statDeathsPerHero, Empty Array);
+        Set Global Variable(statFallDamageTaken, 0);
+        Set Global Variable(statFallDamageTakenPerHero, Empty Array);
+        Set Global Variable(statFallDeaths, 0);
+        Set Global Variable(statFallDeathsPerHero, Empty Array);
+        Set Global Variable(statPlaytimePerHero, Empty Array);
+        Set Global Variable(statFallDeathsTimeline, Empty Array);
+        Set Global Variable(i, 0);
+        Set Global Variable(logString, Custom String("", Null, Null, Null));
+        Set Global Variable(C_FLOATING_HEROES, Array(Hero(Echo), Hero(Sigma), Hero(Zenyatta)));
+        Set Global Variable(C_TERMINAL_VELOCITY, 30);
+        Set Global Variable(FALL_DAMAGE_INSTANTLY_KILLS, Workshop Setting Toggle(Custom String("Gameplay Settings", Null, Null, Null), Custom String("Fall Damage Instantly Kills", Null, Null, Null), False, 0));
+        Set Global Variable(RANDOM_SPREAD_PERCENTAGE, Workshop Setting Integer(Custom String("Gameplay Settings", Null, Null, Null), Custom String("Fall Damage Random Spread (Percentage)", Null, Null, Null), 0, 0, 100, 1));
+        Set Global Variable(FLOATING_HEROES_ALWAYS_IMMUNE, False);
+        Set Global Variable(ANNOUNCE_FALL_DEATHS, Workshop Setting Toggle(Custom String("Gameplay Settings", Null, Null, Null), Custom String("Announce Fall Deaths", Null, Null, Null), True, 3));
+        Set Global Variable(VELOCITY_THRESHOLD, 13);
+        Set Global Variable(KNOCKBACK_CREDIT_TIME, 5);
+    }
+}
+
+rule ("Initialize player variables") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    actions {
+        Set Player Variable(Event Player, debug_feed_array, Empty Array);
+        Set Player Variable(Event Player, debug_feed_num, 0);
+        Set Player Variable(Event Player, t, 0);
+        Set Player Variable(Event Player, cachedHeroIndex, -1);
+        Set Player Variable(Event Player, switchedHero, False);
+        Set Player Variable(Event Player, fallVelocity, 0);
+        Set Player Variable(Event Player, fallDamage, 0);
+        Set Player Variable(Event Player, fallDamageTaken, 0);
+        Set Player Variable(Event Player, fallImmunityState, 0);
+        Set Player Variable(Event Player, recentKnockbacker, Null);
+    }
+}
+
+rule ("Begone, Inspector") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.DEBUG == False;
+    }
+    actions {
+        Disable Inspector Recording;
+    }
+}
+
+rule ("Record Last Source of Knockback") {
+    event {
+        Player Received Knockback;
+        All;
+        All;
+    }
+    conditions {
+        Attacker != Event Player;
+    }
+    actions {
+        "delay by one tick to ignore cases where the booped player never becomes airborne"
+        Wait(0.016, Ignore Condition);
+        If(Not(Is On Ground(Event Player)));
+            Set Player Variable(Event Player, recentKnockbacker, Attacker);
+            Wait(Global.KNOCKBACK_CREDIT_TIME, Restart When True);
+            Set Player Variable(Event Player, recentKnockbacker, Null);
+    }
+}
+
+rule ("Record Falling Velocity") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is On Ground(Event Player) == False;
+    }
+    actions {
+        "only store downward velocity"
+        Set Player Variable(Event Player, fallVelocity, Max(0, Multiply(-1, Vertical Speed Of(Event Player))));
+        "delayed by a frame so the velocity is not reset immediately upon landing"
+        Wait(0.016, Ignore Condition);
+        Loop If Condition Is True;
+    }
+}
+
+rule ("Calculate and Apply Fall Damage") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Is On Ground(Event Player) == True;
+    }
+    actions {
+        "under certain conditions, do not apply fall damage\nice block, wraith, suzu, etc"
+        Skip If(Or(Or(Is Dead(Event Player), Compare((Event Player).fallImmunityState, !=, 0)), Or(Has Status(Event Player, Phased Out), Has Status(Event Player, Invincible))), 33);
+        If(Compare((Event Player).fallVelocity, >, Global.VELOCITY_THRESHOLD));
+            "fall damage formula"
+            If(Compare(Global.FALL_DAMAGE_INSTANTLY_KILLS, ==, True));
+                Set Player Variable(Event Player, fallDamage, 99999);
+            Else;
+                Set Player Variable(Event Player, fallDamage, Divide(Multiply((Event Player).fallVelocity, (Event Player).fallVelocity), 15));
+                Modify Player Variable(Event Player, fallDamage, Multiply, Divide(Add(Add(Max Health Of Type(Event Player, Health), Max Health Of Type(Event Player, Armor)), Max Health Of Type(Event Player, Shields)), 100));
+                If(Compare(Global.RANDOM_SPREAD_PERCENTAGE, >, 0));
+                    Modify Player Variable(Event Player, fallDamage, Multiply, Random Real(Subtract(1, Divide(Global.RANDOM_SPREAD_PERCENTAGE, 100)), Add(1, Divide(Global.RANDOM_SPREAD_PERCENTAGE, 100))));
+                End;
+            End;
+            "deal the damage\nWORKSHOP BUG: passive healing can occur between these next three actions, leading to slight inaccuracies w.r.t. fall damage stats."
+            Set Player Variable(Event Player, fallDamageTaken, Health(Event Player));
+            Damage(Event Player, If-Then-Else(Compare((Event Player).recentKnockbacker, !=, Null), (Event Player).recentKnockbacker, Event Player), (Event Player).fallDamage);
+            Modify Player Variable(Event Player, fallDamageTaken, Subtract, Health(Event Player));
+            "this extra step is needed to handle a race condition with bap lamp where the result becomes negative."
+            Set Player Variable(Event Player, fallDamageTaken, Max(0, (Event Player).fallDamageTaken));
+            Play Effect(All Players(All Teams), Soldier: 76 Sprint Start Sound, Color(Black), Event Player, Multiply((Event Player).fallVelocity, 10));
+            Play Effect(All Players(All Teams), Bad Explosion, Color(Orange), Position Of(Event Player), Multiply((Event Player).fallVelocity, 0.03));
+            If(And(Global.LOG_STATS, Is Game In Progress));
+                Modify Global Variable(statFallDamageTaken, Add, (Event Player).fallDamageTaken);
+                Modify Global Variable At Index(statFallDamageTakenPerHero, Index Of Array Value(All Heroes, Hero Of(Event Player)), Add, (Event Player).fallDamageTaken);
+            End;
+            "fall deaths"
+            If(Is Dead(Event Player));
+                Play Effect(All Players(All Teams), Doomfist Meteor Strike Impact Sound, Color(Black), Event Player, (Event Player).fallVelocity);
+                Play Effect(All Players(All Teams), Ring Explosion, Color(Orange), Position Of(Event Player), Multiply((Event Player).fallVelocity, 0.2));
+                If(Global.ANNOUNCE_FALL_DEATHS);
+                    Small Message(All Players(All Teams), Custom String("{0} {1} hit the ground too hard", Hero Icon String(Hero Of(Event Player)), Event Player, Null));
+                End;
+                If(And(Global.LOG_STATS, Is Game In Progress));
+                    Modify Global Variable(statFallDeaths, Add, 1);
+                    Modify Global Variable At Index(statFallDeathsPerHero, Index Of Array Value(All Heroes, Hero Of(Event Player)), Add, 1);
+                    Modify Global Variable(statFallDeathsTimeline, Append To Array, Custom String("[{0}] {1} ({2}", Custom String("{0}{1}:{2}", If-Then-Else(Compare(Round To Integer(Divide(Global.statReplayDuration, 60), Down), <, 10), Custom String("0", Null, Null, Null), Custom String("", Null, Null, Null)), Round To Integer(Divide(Global.statReplayDuration, 60), Down), Custom String("{0}{1}", If-Then-Else(Compare(Round To Integer(Modulo(Global.statReplayDuration, 60), Down), <, 10), Custom String("0", Null, Null, Null), Custom String("", Null, Null, Null)), Round To Integer(Modulo(Global.statReplayDuration, 60), Down), Null)), Event Player, Custom String("{0}) died of fall damage{1} • landed at {2}", Hero Of(Event Player), If-Then-Else(Compare((Event Player).recentKnockbacker, !=, Null), Custom String(" due to {0} ({1})", (Event Player).recentKnockbacker, Hero Of((Event Player).recentKnockbacker), Null), Custom String("", Null, Null, Null)), Custom String("{0} m/s • took {1} damage", (Event Player).fallVelocity, (Event Player).fallDamageTaken, Null))));
+                End;
+            End;
+        End;
+        //skip:
+        "print debug feed"
+        If(Global.DEBUG);
+            Create HUD Text(Event Player, Null, Custom String("LANDED AT {0} m/s  •  TOOK {1} DAMAGE {2}", (Event Player).fallVelocity, (Event Player).fallDamageTaken, Custom String("                                                                                                                                                                          ", Null, Null, Null)), Null, Left, (Event Player).debug_feed_num, Null, If-Then-Else(Compare((Event Player).fallDamageTaken, >, 0), Custom Color(255, 160, 170, 255), If-Then-Else(Compare((Event Player).fallVelocity, >, Global.VELOCITY_THRESHOLD), Custom Color(160, 255, 170, 255), Custom Color(220, 220, 220, 255))), Null, None, Default Visibility);
+            If(Compare(Count Of((Event Player).debug_feed_array), >=, Global.DEBUG_FEED_MAX));
+                Destroy HUD Text(Value In Array((Event Player).debug_feed_array, Modulo((Event Player).debug_feed_num, Global.DEBUG_FEED_MAX)));
+            End;
+            Set Player Variable At Index(Event Player, debug_feed_array, Modulo((Event Player).debug_feed_num, Global.DEBUG_FEED_MAX), Last Text ID);
+            Modify Player Variable(Event Player, debug_feed_num, Add, 1);
+        End;
+        "we're done, reset state"
+        Set Player Variable(Event Player, fallVelocity, 0);
+        Set Player Variable(Event Player, fallDamage, 0);
+        Set Player Variable(Event Player, fallDamageTaken, 0);
+        If(Compare((Event Player).fallImmunityState, ==, 1));
+            Set Player Variable(Event Player, fallImmunityState, 0);
+        End;
+        Set Player Variable(Event Player, recentKnockbacker, Null);
+    }
+}
+
+rule ("IMMUNITY: Floating Heroes") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Global.FLOATING_HEROES_ALWAYS_IMMUNE == True;
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        "wait for the hero change."
+        Wait Until(Compare(Hero Of(Event Player), !=, Evaluate Once(Hero Of(Event Player))), 999999999999999);
+        "flag the player as floating or non-floating."
+        If(Array Contains(Global.C_FLOATING_HEROES, Hero Of(Event Player)));
+            Set Player Variable(Event Player, fallImmunityState, 3);
+        Else;
+            Set Player Variable(Event Player, fallImmunityState, 0);
+        End;
+        Loop;
+    }
+}
+
+rule ("IMMUNITY: Winston Leap") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Winston;
+    }
+    conditions {
+        (Event Player).fallImmunityState != 3;
+        Is Using Ability 1(Event Player) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, fallImmunityState, 1);
+    }
+}
+
+rule ("IMMUNITY: Doomfist Slam") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Doomfist;
+    }
+    conditions {
+        (Event Player).fallImmunityState != 3;
+        Is Using Ability 1(Event Player) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, fallImmunityState, 1);
+        Wait Until(Not(Is Using Ability 1(Event Player)), 999999999999999);
+        Set Player Variable(Event Player, fallImmunityState, 0);
+    }
+}
+
+rule ("IMMUNITY: Mauga Charge") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mauga;
+    }
+    conditions {
+        (Event Player).fallImmunityState != 3;
+        Is Using Ability 1(Event Player) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, fallImmunityState, 2);
+        Wait Until(Not(Is Using Ability 1(Event Player)), 999999999999999);
+        Set Player Variable(Event Player, fallImmunityState, 0);
+    }
+}
+
+rule ("IMMUNITY: Venture Burrow") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Venture;
+    }
+    conditions {
+        (Event Player).fallImmunityState != 3;
+        Is Using Ability 1(Event Player) == True;
+    }
+    actions {
+        Set Player Variable(Event Player, fallImmunityState, 2);
+        Wait Until(Not(Is Using Ability 1(Event Player)), 999999999999999);
+        Set Player Variable(Event Player, fallImmunityState, 0);
+    }
+}
+
+rule ("IMMUNITY: Wrecking Ball Piledriver") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Wrecking Ball;
+    }
+    conditions {
+        (Event Player).fallImmunityState != 3;
+        "piledriver sets fall velocity to 98"
+        (Event Player).fallVelocity > 90;
+    }
+    actions {
+        Set Player Variable(Event Player, fallImmunityState, 2);
+        "if he slows down the ability has ended, but we wait a bit to clear the immunity flag to cover \"surf\" landings.\nnote: the wait duration must be less than the wait timeout for sigma's ult immunity (0.5s)"
+        Wait Until(Compare((Event Player).fallVelocity, <, Global.C_TERMINAL_VELOCITY), 10);
+        Wait(0.4, Ignore Condition);
+        Set Player Variable(Event Player, fallImmunityState, 0);
+    }
+}
+
+rule ("IMMUNITY: Inside Sigma Ult") {
+    event {
+        Player Received Knockback;
+        All;
+        All;
+    }
+    conditions {
+        (Event Player).fallImmunityState != 3;
+        Hero Of(Attacker) == Hero(Sigma);
+        Event Ability == Button(Ultimate);
+    }
+    actions {
+        "HACK: let other immunity flags expire before applying this one"
+        Wait Until(Compare((Event Player).fallImmunityState, ==, 0), 0.5);
+        Set Player Variable(Event Player, fallImmunityState, 2);
+        Wait Until(Not(Is Using Ultimate(Attacker)), 5);
+        Set Player Variable(Event Player, fallImmunityState, 0);
+    }
+}
+
+rule ("STATISTICS: Replay Duration") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is In Setup == True;
+    }
+    actions {
+        "time elapsed since the server began recording the replay"
+        Chase Global Variable At Rate(statReplayDuration, 999999999999999, 1, None);
+    }
+}
+
+rule ("STATISTICS: Match Duration Resume") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is Game In Progress == True;
+    }
+    actions {
+        "the built-in match timer is sometimes active while stats are not being tracked\nwe only care about time where stats are tracked"
+        Chase Global Variable At Rate(statMatchDuration, 999999999999999, 1, None);
+    }
+}
+
+rule ("STATISTICS: Match Duration Pause") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is Game In Progress == False;
+    }
+    actions {
+        Stop Chasing Global Variable(statMatchDuration);
+    }
+}
+
+rule ("STATISTICS: Display Final Stats") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is Match Complete == True;
+    }
+    actions {
+        Big Message(All Players(All Teams), Custom String("Fall Damage: {0}   •   Fall Deaths: {1}", Round To Integer(Global.statFallDamageTaken, To Nearest), Global.statFallDeaths, Null));
+    }
+}
+
+rule ("STATISTICS: Increment Deaths") {
+    event {
+        Player Died;
+        All;
+        All;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is Game In Progress == True;
+    }
+    actions {
+        Modify Global Variable(statDeaths, Add, 1);
+        Modify Global Variable At Index(statDeathsPerHero, Index Of Array Value(All Heroes, Hero Of(Event Player)), Add, 1);
+    }
+}
+
+rule ("STATISTICS: Increment Damage Taken") {
+    event {
+        Player Took Damage;
+        All;
+        All;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is Game In Progress == True;
+    }
+    actions {
+        Modify Global Variable(statDamageTaken, Add, Event Damage);
+        Modify Global Variable At Index(statDamageTakenPerHero, Index Of Array Value(All Heroes, Hero Of(Event Player)), Add, Event Damage);
+    }
+}
+
+rule ("STATISTICS: Detect Hero Swap") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Index Of Array Value(All Heroes, Hero Of(Event Player)) != (Event Player).cachedHeroIndex;
+    }
+    actions {
+        Set Player Variable(Event Player, switchedHero, True);
+    }
+}
+
+rule ("STATISTICS: Track Playtime of Each Hero") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is Game In Progress == True;
+    }
+    actions {
+        "to reduce server load, this value is only added to the array about once per second.\nideally we would add to the array less frequently, but if a player leaves the server we lose all their tracked time."
+        Chase Player Variable At Rate(Event Player, t, 999999999999999, 1, None);
+        "if the match ends or the player switches hero, add it sooner to store the accurate time."
+        Wait Until(Or(Not(Is Game In Progress), Compare((Event Player).switchedHero, ==, True)), 1);
+        "if the player hasn't spawned, they don't have a hero. add this \"lost time\" to the last array element + 1."
+        Modify Global Variable At Index(statPlaytimePerHero, If-Then-Else(Compare((Event Player).cachedHeroIndex, !=, -1), (Event Player).cachedHeroIndex, Count Of(All Heroes)), Add, (Event Player).t);
+        Set Player Variable(Event Player, t, 0);
+        If(Compare((Event Player).switchedHero, ==, True));
+            Set Player Variable(Event Player, cachedHeroIndex, Index Of Array Value(All Heroes, Hero Of(Event Player)));
+            Set Player Variable(Event Player, switchedHero, False);
+        End;
+        Loop If Condition Is True;
+        "we stop chasing instead of re-evaluating the rate to 0 in order for the debug HUD to work."
+        Stop Chasing Player Variable(Event Player, t);
+        Set Player Variable(Event Player, cachedHeroIndex, -1);
+    }
+}
+
+rule ("STATISTICS: Write Stats to Log File") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.LOG_STATS == True;
+        Is Match Complete == True;
+    }
+    actions {
+        Wait(0.25, Ignore Condition);
+        Enable Inspector Recording;
+        Log To Inspector(Custom String("FALL DAMAGE PLAYTEST RESULTS\n", Null, Null, Null));
+        Log To Inspector(Custom String("-------------------------------------------------\n", Null, Null, Null));
+        Log To Inspector(Custom String("Session: Final", Null, Null, Null));
+        Log To Inspector(Custom String("Fall Damage Formula: (eventPlayer.fallVelocity * eventPlayer.fallVelocity) / 15\n", Null, Null, Null));
+        Log To Inspector(Custom String("Gamemode: {0}", Current Game Mode, Null, Null));
+        Log To Inspector(Custom String("Map: {0}", Current Map, Null, Null));
+        Log To Inspector(Custom String("Match Duration: {0}\n", Global.statMatchDuration, Null, Null));
+        Log To Inspector(Custom String("-------------------------------------------------\n", Null, Null, Null));
+        Log To Inspector(Custom String("Damage Taken: {0}", Global.statDamageTaken, Null, Null));
+        Log To Inspector(Custom String("Fall Damage Taken: {0} ({1}%)\n", Global.statFallDamageTaken, Multiply(Divide(Global.statFallDamageTaken, Global.statDamageTaken), 100), Null));
+        Log To Inspector(Custom String("Deaths: {0}", Global.statDeaths, Null, Null));
+        Log To Inspector(Custom String("Fall Deaths: {0} ({1}%)\n", Global.statFallDeaths, Multiply(Divide(Global.statFallDeaths, Global.statDeaths), 100), Null));
+        Wait(0.016, Ignore Condition);
+        "mark the end of hero arrays to pad empty elements with zeros"
+        Set Global Variable At Index(statDamageTakenPerHero, Count Of(All Heroes), -1);
+        Set Global Variable At Index(statFallDamageTakenPerHero, Count Of(All Heroes), -1);
+        Set Global Variable At Index(statDeathsPerHero, Count Of(All Heroes), -1);
+        Set Global Variable At Index(statFallDeathsPerHero, Count Of(All Heroes), -1);
+        "extra element stores \"lost time\" where the player has no hero"
+        Set Global Variable At Index(statPlaytimePerHero, Add(Count Of(All Heroes), 1), -1);
+        Wait(0.016, Ignore Condition);
+        "array strings need to be built manually (thanks provoxin for solution)"
+        Set Global Variable(logString, Custom String("[", Null, Null, Null));
+        For Global Variable(i, 0, Subtract(Count Of(Global.statDamageTakenPerHero), 1), 1);
+            Set Global Variable(logString, Custom String("{0}{1}{2}", Global.logString, If-Then-Else(Compare(Global.i, ==, 0), Custom String("", Null, Null, Null), Custom String(", ", Null, Null, Null)), Value In Array(Global.statDamageTakenPerHero, Global.i)));
+        End;
+        Set Global Variable(logString, Custom String("{0}]", Global.logString, Null, Null));
+        Log To Inspector(Custom String("Damage Taken Per Hero: {0}\n", Global.logString, Null, Null));
+        Wait(0.016, Ignore Condition);
+        Set Global Variable(logString, Custom String("[", Null, Null, Null));
+        For Global Variable(i, 0, Subtract(Count Of(Global.statFallDamageTakenPerHero), 1), 1);
+            Set Global Variable(logString, Custom String("{0}{1}{2}", Global.logString, If-Then-Else(Compare(Global.i, ==, 0), Custom String("", Null, Null, Null), Custom String(", ", Null, Null, Null)), Value In Array(Global.statFallDamageTakenPerHero, Global.i)));
+        End;
+        Set Global Variable(logString, Custom String("{0}]", Global.logString, Null, Null));
+        Log To Inspector(Custom String("Fall Damage Taken Per Hero: {0}\n", Global.logString, Null, Null));
+        Wait(0.016, Ignore Condition);
+        Set Global Variable(logString, Custom String("[", Null, Null, Null));
+        For Global Variable(i, 0, Subtract(Count Of(Global.statDeathsPerHero), 1), 1);
+            Set Global Variable(logString, Custom String("{0}{1}{2}", Global.logString, If-Then-Else(Compare(Global.i, ==, 0), Custom String("", Null, Null, Null), Custom String(", ", Null, Null, Null)), Value In Array(Global.statDeathsPerHero, Global.i)));
+        End;
+        Set Global Variable(logString, Custom String("{0}]", Global.logString, Null, Null));
+        Log To Inspector(Custom String("Deaths Per Hero: {0}\n", Global.logString, Null, Null));
+        Wait(0.016, Ignore Condition);
+        Set Global Variable(logString, Custom String("[", Null, Null, Null));
+        For Global Variable(i, 0, Subtract(Count Of(Global.statFallDeathsPerHero), 1), 1);
+            Set Global Variable(logString, Custom String("{0}{1}{2}", Global.logString, If-Then-Else(Compare(Global.i, ==, 0), Custom String("", Null, Null, Null), Custom String(", ", Null, Null, Null)), Value In Array(Global.statFallDeathsPerHero, Global.i)));
+        End;
+        Set Global Variable(logString, Custom String("{0}]", Global.logString, Null, Null));
+        Log To Inspector(Custom String("Fall Deaths Per Hero: {0}\n", Global.logString, Null, Null));
+        Wait(0.016, Ignore Condition);
+        Set Global Variable(logString, Custom String("[", Null, Null, Null));
+        For Global Variable(i, 0, Subtract(Count Of(Global.statPlaytimePerHero), 1), 1);
+            Set Global Variable(logString, Custom String("{0}{1}{2}", Global.logString, If-Then-Else(Compare(Global.i, ==, 0), Custom String("", Null, Null, Null), Custom String(", ", Null, Null, Null)), Value In Array(Global.statPlaytimePerHero, Global.i)));
+        End;
+        Set Global Variable(logString, Custom String("{0}]", Global.logString, Null, Null));
+        Log To Inspector(Custom String("Time Played Per Hero: {0}\n", Global.logString, Null, Null));
+        Wait(0.016, Ignore Condition);
+        Log To Inspector(Custom String("-------------------------------------------------\n", Null, Null, Null));
+        Log To Inspector(Custom String("Fall Deaths Timeline:\n", Null, Null, Null));
+        For Global Variable(i, 0, Count Of(Global.statFallDeathsTimeline), 1);
+            Log To Inspector(Value In Array(Global.statFallDeathsTimeline, Global.i));
+        End;
+    }
+}
+
+rule ("DEBUG: Display Velocity") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.DEBUG == True;
+    }
+    actions {
+        Create HUD Text(Local Player, Icon String(Arrow: Down), Custom String("Fall Velocity {0}", Custom String("                                                                                                                                                                          ", Null, Null, Null), Null, Null), Custom String("{0} m/s", (Local Player).fallVelocity, Null, Null), Left, -99, Update Every Frame(If-Then-Else(And(Compare((Local Player).fallVelocity, >, Global.VELOCITY_THRESHOLD), Compare((Local Player).fallVelocity, <, Global.C_TERMINAL_VELOCITY)), Color(Rose), Custom Color(220, 220, 220, 255))), Custom Color(220, 220, 220, 255), Color(White), Visible To String and Color, Visible Never);
+        Create HUD Text(Local Player, Null, Null, Custom String("•", Null, Null, Null), Left, -98, Null, Null, Custom Color(0, 0, 0, 0), Visible To, Default Visibility);
+    }
+}
+
+rule ("DEBUG: Display Last Source of Knockback") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.DEBUG == True;
+    }
+    actions {
+        Create HUD Text(Local Player, Null, Custom String("•", Null, Null, Null), Null, Left, 1000100, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Default Visibility);
+        Create HUD Text(Local Player, Null, Custom String("Recent Knockbacker: {0} {1}", If-Then-Else(Compare((Local Player).recentKnockbacker, ==, Null), Custom String("", Null, Null, Null), (Local Player).recentKnockbacker), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null), Null, Left, 1000101, Null, Custom Color(220, 220, 220, 255), Null, Visible To and String, Default Visibility);
+    }
+}
+
+rule ("DEBUG: Display Immunity Status") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.DEBUG == True;
+    }
+    actions {
+        Create HUD Text(Local Player, Null, Custom String("•", Null, Null, Null), Null, Left, 1000200, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Default Visibility);
+        Create HUD Text(Local Player, Null, Custom String("Fall Immunity: {0} {1}", Value In Array(Array(Custom String("NONE", Null, Null, Null), Custom String("UNTIL_ON_GROUND", Null, Null, Null), Custom String("SCRIPTED", Null, Null, Null), Custom String("ALWAYS_IMMUNE", Null, Null, Null)), (Local Player).fallImmunityState), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null), Null, Left, 1000201, Null, If-Then-Else(Compare((Local Player).fallImmunityState, !=, 0), Custom Color(160, 255, 170, 255), Custom Color(255, 160, 170, 255)), Null, Visible To String and Color, Default Visibility);
+    }
+}
+
+disabled rule ("DEBUG: Display Match Duration") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.DEBUG == True;
+    }
+    actions {
+        Create HUD Text(Local Player, Null, Custom String("•", Null, Null, Null), Null, Left, 1000300, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Default Visibility);
+        Create HUD Text(Local Player, Null, Custom String("Match Duration: {0} {1}", Custom String("{0}{1}:{2}", If-Then-Else(Compare(Round To Integer(Divide(Global.statMatchDuration, 60), Down), <, 10), Custom String("0", Null, Null, Null), Custom String("", Null, Null, Null)), Round To Integer(Divide(Global.statMatchDuration, 60), Down), Custom String("{0}{1}", If-Then-Else(Compare(Round To Integer(Modulo(Global.statMatchDuration, 60), Down), <, 10), Custom String("0", Null, Null, Null), Custom String("", Null, Null, Null)), Round To Integer(Modulo(Global.statMatchDuration, 60), Down), Null)), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null), Null, Left, 1000301, Null, If-Then-Else(Is Game In Progress, Custom Color(245, 235, 170, 255), Custom Color(190, 190, 190, 255)), Null, Visible To String and Color, Default Visibility);
+    }
+}
+
+disabled rule ("DEBUG: Display Replay Duration") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.DEBUG == True;
+    }
+    actions {
+        Create HUD Text(Local Player, Null, Custom String("•", Null, Null, Null), Null, Left, 1000400, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Default Visibility);
+        Create HUD Text(Local Player, Null, Custom String("Replay Duration: {0} {1}", Custom String("{0}{1}:{2}", If-Then-Else(Compare(Round To Integer(Divide(Global.statReplayDuration, 60), Down), <, 10), Custom String("0", Null, Null, Null), Custom String("", Null, Null, Null)), Round To Integer(Divide(Global.statReplayDuration, 60), Down), Custom String("{0}{1}", If-Then-Else(Compare(Round To Integer(Modulo(Global.statReplayDuration, 60), Down), <, 10), Custom String("0", Null, Null, Null), Custom String("", Null, Null, Null)), Round To Integer(Modulo(Global.statReplayDuration, 60), Down), Null)), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null), Null, Left, 1000401, Null, If-Then-Else(Is Game In Progress, Custom Color(245, 235, 170, 255), Custom Color(190, 190, 190, 255)), Null, Visible To String and Color, Default Visibility);
+    }
+}
+
+rule ("DEBUG: Display In-Progress Stats") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.DEBUG == True;
+        Global.LOG_STATS == True;
+    }
+    actions {
+        Create HUD Text(Local Player, Null, Custom String("•", Null, Null, Null), Null, Left, 1000900, Null, Custom Color(0, 0, 0, 0), Null, Visible To, Visible Always);
+        Create HUD Text(Local Player, Null, Custom String("Total Fall Damage: {0} ({1}%) {2}", Global.statFallDamageTaken, Multiply(Divide(Global.statFallDamageTaken, Global.statDamageTaken), 100), Custom String("                                                                                                                                                                          ", Null, Null, Null)), Null, Left, 1000901, Null, Custom Color(80, 220, 255, 255), Null, Visible To and String, Visible Always);
+        Create HUD Text(Local Player, Null, Custom String("Total Fall Deaths: {0} ({1}%) {2}", Global.statFallDeaths, Multiply(Divide(Global.statFallDeaths, Global.statDeaths), 100), Custom String("                                                                                                                                                                          ", Null, Null, Null)), Null, Left, 1000902, Null, Custom Color(110, 180, 255, 255), Null, Visible To and String, Visible Always);
+    }
+}
+
