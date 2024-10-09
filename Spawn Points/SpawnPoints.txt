@@ -2,7 +2,7 @@ settings
 {
 	main
 	{
-		Description: "Draw a visualization of spawn points in the level.\n\nCode: W402R\nLast updated: 2024-06-24"
+		Description: "Draw a visualization of spawn points in the level.\n\nCode: W402R\nLast updated: 2024-10-09"
 		Mode Name: "Spawn Points"
 	}
 	lobby
@@ -12,20 +12,12 @@ settings
 	}
 	modes
 	{
-		Control
+		Team Deathmatch
 		{
-		}
-		Escort
-		{
-		}
-		Hybrid
-		{
-		}
-		Push
-		{
-		}
-		General
-		{
+			enabled maps
+			{
+				Workshop Island
+			}
 		}
 	}
 }
@@ -234,7 +226,7 @@ rule ("Display Spawn Points") {
         Set Global Variable(avg1, Vector(0, 0, 0));
         Set Global Variable(avg2, Vector(0, 0, 0));
         Wait(0.016, Ignore Condition);
-        "draw a visualization of spawn points in the level\r\n in deathmatch maps, iterate though all spawns - otherwise separate by team"
+        "draw a visualization of spawn points in the level\nin deathmatch maps, iterate though all spawns - otherwise separate by team"
         If(Or(Compare(Current Game Mode, ==, Game Mode(Team Deathmatch)), Compare(Current Game Mode, ==, Game Mode(Deathmatch))));
             Set Global Variable(n0, Count Of(Spawn Points(All Teams)));
             "All Teams"
@@ -277,7 +269,6 @@ rule ("Display Spawn Points") {
             Create HUD Text(All Players(All Teams), Null, Custom String("•", Null, Null, Null), Null, Left, Add(Count Of(Global.arrayPointsTeam1), Count Of(Global.arrayPointsTeam2)), Null, Custom Color(0, 0, 0, 0), Null, Visible To, Visible Always);
             Modify Global Variable(avg1, Divide, Global.n1);
             Modify Global Variable(avg2, Divide, Global.n2);
-            "BUG: starting with season 11, there are 3 separate Push gamemodes all named \"Push\".\r\n this causes the game mode comparison to fail and not display the correct value for push."
             Set Global Variable(objPos, If-Then-Else(Compare(Current Game Mode, ==, Game Mode(Push)), Payload Position, Objective Position(Objective Index)));
             Wait(0.064, Ignore Condition);
             Create HUD Text(All Players(All Teams), Null, Null, Custom String("[C] {0}", Global.objPos, Null, Null), Left, 999, Null, Null, Custom Color(200, 200, 200, 255), Visible To, Visible Always);

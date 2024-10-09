@@ -1,6 +1,6 @@
 settings {
     "main": {
-        "description": "Draw a visualization of spawn points in the level.\n\nCode: W402R\nLast updated: 2024-06-24",
+        "description": "Draw a visualization of spawn points in the level.\n\nCode: W402R\nLast updated: 2024-10-09",
         "modeName": "Spawn Points"
     },
     "lobby": {
@@ -8,11 +8,11 @@ settings {
         "team2Slots": 5
     },
     "gamemodes": {
-        "control": {},
-        "escort": {},
-        "hybrid": {},
-        "push": {},
-        "general": {}
+        "tdm": {
+            "enabledMaps": [
+                "workshopIsland"
+            ]
+        },
     }
 }
 
@@ -210,8 +210,6 @@ rule "Display Spawn Points":
         avg1 /= n1
         avg2 /= n2
         
-        # BUG: starting with season 11, there are 3 separate Push gamemodes all named "Push".
-        # this causes the game mode comparison to fail and not display the correct value for push.
         objPos = getPayloadPosition() if getCurrentGamemode() == Gamemode.PUSH else getObjectivePosition(getCurrentObjective())
         wait(0.064)
 
