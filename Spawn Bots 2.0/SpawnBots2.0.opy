@@ -1,6 +1,6 @@
 settings {
     "main": {
-        "description": "Create and destroy bots that press buttons.\n\nCode: C2N23\nLast updated: 2024-05-16",
+        "description": "Create and destroy bots that press buttons.\n\nCode: C2N23\nLast updated: 2024-10-09",
         "modeName": "Spawn Bots 2.0"
     },
     "lobby": {
@@ -8,48 +8,11 @@ settings {
         "team2Slots": 5
     },
     "gamemodes": {
-        "assault": {
-            "enabledMaps": []
-        },
-        "control": {
-            "enabledMaps": []
-        },
-        "escort": {
-            "enabledMaps": []
-        },
-        "flashpoint": {
-            "enabledMaps": []
-        },
-        "hybrid": {
+        "tdm": {
             "enabledMaps": [
-                {"hollywood":["morning"]}
+                "workshopIsland"
             ]
         },
-        "practiceRange": {
-            "enabled": false,
-            "enableTrainingPartner": false
-        },
-        "push": {
-            "enabledMaps": []
-        },
-        "tdm": {
-            "enabledMaps": []
-        },
-        "general": {
-            "gamemodeStartTrigger": "manual",
-            "heroLimit": "off",
-            "tankPassiveHealthBonus": "alwaysEnabled"
-        }
-    },
-    "heroes": {
-        "allTeams": {
-            "general": {
-                "enableSpawningWithUlt": true,
-                "ultGen%": 500,
-                "combatUltGen%": 500,
-                "passiveUltGen%": 500
-            }
-        }
     }
 }
 
@@ -67,90 +30,97 @@ enum Mode:
     TOTAL_MODES
 
 # hero colors for style ✨
-globalvar HERO_COLORS = [rgb(122, 46, 73),   # Reaper
-                         rgb(222, 122, 0),   # Tracer
-                         rgb(250, 242, 173), # Mercy
-                         rgb(178, 168, 101), # Hanzo
-                         rgb(186, 76, 63),   # Torbjorn
-                         rgb(124, 139, 140), # Reinhardt
-                         rgb(0, 88, 188),    # Pharah
-                         rgb(143, 146, 174), # Winston
-                         rgb(139, 63, 143),  # Widowmaker
-                         rgb(91, 115, 81),   # Bastion
-                         rgb(118, 180, 201), # Symmetra
-                         rgb(252, 238, 90),  # Zenyatta
-                         rgb(128, 251, 0),   # Genji
-                         rgb(174, 111, 28),  # Roadhog
-                         rgb(166, 41, 39),   # Cassidy
-                         rgb(231, 162, 23),  # Junkrat
-                         rgb(246, 94, 166),  # Zarya
-                         rgb(68, 82, 117),   # Soldier: 76
-                         rgb(103, 197, 25),  # Lucio
-                         rgb(252, 121, 189), # D.Va
-                         rgb(70, 154, 240),  # Mei
-                         rgb(81, 40, 169),   # Sombra
-                         rgb(130, 62, 53),   # Doomfist
-                         rgb(72, 105, 158),  # Ana
-                         rgb(16, 111, 4),    # Orisa
-                         rgb(145, 82, 77),   # Brigitte
-                         rgb(151, 114, 229), # Moira
-                         rgb(220, 147, 67),  # Wrecking Ball
-                         rgb(215, 62, 44),   # Sojourn
-                         rgb(110, 108, 106), # Ashe
-                         rgb(137, 200, 255), # Echo
-                         rgb(40, 165, 195),  # Baptiste
-                         rgb(208, 70, 86),   # Kiriko
-                         rgb(87, 159, 207),  # Junker Queen
-                         rgb(124, 139, 140), # Sigma
-                         rgb(125, 85, 199),  # Ramattra
-                         rgb(225, 165, 186), # Lifeweaver
-                         rgb(219, 66, 22),   # Mauga
-                         rgb(165, 140, 84),  # Illari
-                         rgb(121, 97, 78)    # Venture
+globalvar HERO_COLORS = [
+    rgb(124, 62, 82),   # Reaper
+    rgb(214, 145, 65),  # Tracer
+    rgb(236, 233, 189), # Mercy
+    rgb(185, 180, 137), # Hanzo
+    rgb(191, 115, 110), # Torbjorn
+    rgb(148, 161, 165), # Reinhardt
+    rgb(60, 126, 204),  # Pharah
+    rgb(160, 169, 186), # Winston
+    rgb(157, 105, 166), # Widowmaker
+    rgb(124, 143, 122), # Bastion
+    rgb(145, 187, 209), # Symmetra
+    rgb(236, 229, 128), # Zenyatta
+    rgb(149, 239, 66),  # Genji
+    rgb(179, 139, 80),  # Roadhog
+    rgb(173, 90, 95),   # Cassidy
+    rgb(236, 190, 82),  # Junkrat
+    rgb(231, 130, 184), # Zarya
+    rgb(109, 121, 149), # Soldier: 76
+    rgb(132, 201, 81),  # Lucio
+    rgb(237, 147, 199), # D.Va
+    rgb(109, 171, 235), # Mei
+    rgb(118, 93, 189),  # Sombra
+    rgb(131, 83, 76),   # Doomfist
+    rgb(110, 137, 177), # Ana
+    rgb(69, 139, 66),   # Orisa
+    rgb(139, 98, 94),   # Brigitte
+    rgb(151, 113, 228), # Moira
+    rgb(219, 147, 66),  # Wrecking Ball
+    rgb(198, 28, 65),   # Sojourn
+    rgb(105, 105, 104), # Ashe
+    rgb(154, 202, 243), # Echo
+    rgb(85, 178, 204),  # Baptiste
+    rgb(212, 135, 143), # Kiriko
+    rgb(142, 181, 215), # Junker Queen
+    rgb(148, 160, 165), # Sigma
+    rgb(157, 140, 208), # Ramattra
+    rgb(224, 182, 198), # Lifeweaver
+    rgb(220, 132, 125), # Mauga
+    rgb(183, 168, 142), # Illari
+    rgb(121, 97, 78),   # Venture
+    rgb(114, 31, 163)   # Juno
 ]
 
 # heroes with ultimates that require extra logic for bots to use
-globalvar TRANSFORMATIVE_ULTS = [Hero.DOOMFIST,
-                                 Hero.ORISA,
-                                 Hero.ROADHOG,
-                                 Hero.SIGMA,
-                                 Hero.BASTION,
-                                 Hero.JUNKRAT,
-                                 Hero.SOJOURN,
-                                 Hero.SOLDIER,
-                                 Hero.TORBJORN,
-                                 Hero.ILLARI,
-                                 Hero.VENTURE]
+globalvar TRANSFORMATIVE_ULTS = [
+    Hero.DOOMFIST,
+    Hero.ORISA,
+    Hero.ROADHOG,
+    Hero.SIGMA,
+    Hero.BASTION,
+    Hero.JUNKRAT,
+    Hero.SOJOURN,
+    Hero.SOLDIER,
+    Hero.TORBJORN,
+    Hero.ILLARI,
+    Hero.VENTURE
+]
 
-globalvar PLACEMENT_ULTS = [Hero.SYMMETRA,
-                            Hero.BAPTISTE,
-                            Hero.LIFEWEAVER]
+globalvar BUILDABLE_ULTS = [
+    Hero.SYMMETRA,
+    Hero.BAPTISTE,
+    Hero.LIFEWEAVER
+]
 
 # all buttons in a sensible order
-globalvar BUTTONS = [Button.PRIMARY_FIRE,
-                     Button.SECONDARY_FIRE,
-                     Button.ABILITY_1,
-                     Button.ABILITY_2,
-                     Button.ULTIMATE,
-                     Button.JUMP,
-                     Button.MELEE,
-                     Button.CROUCH,
-                     Button.RELOAD,
-                     Button.INTERACT]
+globalvar BUTTONS = [
+    Button.PRIMARY_FIRE,
+    Button.SECONDARY_FIRE,
+    Button.ABILITY_1,
+    Button.ABILITY_2,
+    Button.ULTIMATE,
+    Button.JUMP,
+    Button.MELEE,
+    Button.CROUCH,
+    Button.RELOAD,
+    Button.INTERACT
+]
 
 # user chosen keybinds
-globalvar KEYBIND_MENU_A =                BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Toggle Bot Menu (First Button)", 8, 0)]
-globalvar KEYBIND_MENU_B =                BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Toggle Bot Menu (Second Button)", 9, 1)]
-globalvar KEYBIND_CREATE_BOT =            BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Create Bot", 1, 2)]
-globalvar KEYBIND_DESTROY_BOT =           BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Destroy Bot", 0, 3)]
-globalvar KEYBIND_CYCLE_HERO_FORWARD =    BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Cycle Hero Forward", 6, 4)]
-globalvar KEYBIND_CYCLE_HERO_BACK =       BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Cycle Hero Backward", 2, 5)]
-globalvar KEYBIND_CYCLE_BUTTON_FORWARD =  BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Cycle Button Forward", 3, 6)]
-globalvar KEYBIND_CYCLE_BUTTON_BACK =     BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Cycle Button Backward", 4, 7)]
-globalvar KEYBIND_SWAP_TEAM =             BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Swap Team", 7, 8)]
-globalvar KEYBIND_PRESS_BUTTON =          BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Keybinds", "Press Button", 9, 9)]
-globalvar KEYBIND_RESET_COOLDOWNS =       BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Other Keybinds", "Reset All Cooldowns", 6, 10)]
-globalvar KEYBIND_CHANGE_HERO =           BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Other Keybinds", "Change Hero (Hold)", 6, 11)]
+globalvar KEYBIND_MENU =                  BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Toggle Bot Menu", 8, 0)]
+globalvar KEYBIND_CREATE_BOT =            BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Create Bot", 1, 1)]
+globalvar KEYBIND_DESTROY_BOT =           BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Destroy Bot", 0, 2)]
+globalvar KEYBIND_CYCLE_HERO_FORWARD =    BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Cycle Hero Forward", 6, 3)]
+globalvar KEYBIND_CYCLE_HERO_BACK =       BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Cycle Hero Backward", 2, 4)]
+globalvar KEYBIND_CYCLE_BUTTON_FORWARD =  BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Cycle Button Forward", 3, 5)]
+globalvar KEYBIND_CYCLE_BUTTON_BACK =     BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Cycle Button Backward", 4, 6)]
+globalvar KEYBIND_SWAP_TEAM =             BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Swap Team", 7, 7)]
+globalvar KEYBIND_PRESS_BUTTON =          BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Bot Menu Keybinds", "Press Button", 9, 8)]
+globalvar KEYBIND_RESET_COOLDOWNS =       BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Utility Keybinds", "Reset All Cooldowns", 6, 9)]
+globalvar KEYBIND_CHANGE_HERO =           BUTTONS[createWorkshopSetting(enum["PRIMARY FIRE", "SECONDARY FIRE", "ABILITY 1", "ABILITY 2", "ULTIMATE", "JUMP", "MELEE", "CROUCH", "RELOAD", "INTERACT"], "Utility Keybinds", "Change Hero (Hold)", 6, 10)]
 
 globalvar dummies = []
 globalvar i = 0
@@ -262,32 +232,30 @@ def buildBotArray():
     
 
 rule "Instructions HUD":
-    @Event eachPlayer
-    @Condition eventPlayer.isDummy() == false
+    @Event global
     
-    hudSubheader(eventPlayer if eventPlayer.showInstructions else null, "TOGGLE BOT MENU", HudPosition.TOP, 98, rgb(255, 170, 30), HudReeval.VISIBILITY)
-    hudSubtext(eventPlayer if eventPlayer.showInstructions else null, "[{0}] + [{1}]".format(buttonString(KEYBIND_MENU_A), buttonString(KEYBIND_MENU_B)), HudPosition.TOP, 99, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
+    hudSubheader(localPlayer if localPlayer.showInstructions else null, "TOGGLE BOT MENU", HudPosition.TOP, 98, rgb(255, 170, 30), HudReeval.VISIBILITY)
+    hudSubtext(localPlayer if localPlayer.showInstructions else null, "[{0}] + [{1}]".format(buttonString(KEYBIND_MENU), buttonString(KEYBIND_PRESS_BUTTON)), HudPosition.TOP, 99, Color.WHITE, HudReeval.VISIBILITY_AND_STRING)
 
 
 rule "Edit Mode HUD":
-    @Event eachPlayer
-    @Condition eventPlayer.isDummy() == false
+    @Event global
 
     # hero selection
-    hudText(eventPlayer if eventPlayer.showHUD else null, heroIcon(getAllHeroes()[eventPlayer.heroIndex]), "<— [{0}] PREV     NEXT [{1}] —> {2}".format(buttonString(KEYBIND_CYCLE_HERO_BACK), buttonString(KEYBIND_CYCLE_HERO_FORWARD), Math.LOTS_OF_SPACES), getAllHeroes()[eventPlayer.heroIndex], HudPosition.LEFT, 1, HERO_COLORS[eventPlayer.heroIndex], rgb(210, 210, 210), rgb(255, 255, 255), HudReeval.VISIBILITY_STRING_AND_COLOR)
-    hudSubheader(eventPlayer if eventPlayer.showHUD else null, "•", HudPosition.LEFT, 2, rgba(0, 0, 0, 0), HudReeval.VISIBILITY)
+    hudText(localPlayer if localPlayer.showHUD else null, heroIcon(getAllHeroes()[localPlayer.heroIndex]), "<— [{0}] PREV     NEXT [{1}] —> {2}".format(buttonString(KEYBIND_CYCLE_HERO_BACK), buttonString(KEYBIND_CYCLE_HERO_FORWARD), Math.LOTS_OF_SPACES), getAllHeroes()[localPlayer.heroIndex], HudPosition.LEFT, 1, HERO_COLORS[localPlayer.heroIndex], rgb(210, 210, 210), rgb(255, 255, 255), HudReeval.VISIBILITY_STRING_AND_COLOR)
+    hudSubheader(localPlayer if localPlayer.showHUD else null, "•", HudPosition.LEFT, 2, rgba(0, 0, 0, 0), HudReeval.VISIBILITY)
 
     # button selection
-    hudText(eventPlayer if eventPlayer.showHUD else null, buttonString(BUTTONS[eventPlayer.buttonIndex]), "<— [{0}] PREV     NEXT [{1}] —> {2}".format(buttonString(KEYBIND_CYCLE_BUTTON_BACK), buttonString(KEYBIND_CYCLE_BUTTON_FORWARD), Math.LOTS_OF_SPACES), BUTTONS[eventPlayer.buttonIndex], HudPosition.LEFT, 3, rgb(210, 210, 210), rgb(210, 210, 210), rgb(255, 255, 255), HudReeval.VISIBILITY_AND_STRING)
-    hudSubheader(eventPlayer if eventPlayer.showHUD else null, "•", HudPosition.LEFT, 4, rgba(0, 0, 0, 0), HudReeval.VISIBILITY)
+    hudText(localPlayer if localPlayer.showHUD else null, buttonString(BUTTONS[localPlayer.buttonIndex]), "<— [{0}] PREV     NEXT [{1}] —> {2}".format(buttonString(KEYBIND_CYCLE_BUTTON_BACK), buttonString(KEYBIND_CYCLE_BUTTON_FORWARD), Math.LOTS_OF_SPACES), BUTTONS[localPlayer.buttonIndex], HudPosition.LEFT, 3, rgb(210, 210, 210), rgb(210, 210, 210), rgb(255, 255, 255), HudReeval.VISIBILITY_AND_STRING)
+    hudSubheader(localPlayer if localPlayer.showHUD else null, "•", HudPosition.LEFT, 4, rgba(0, 0, 0, 0), HudReeval.VISIBILITY)
 
     # team selection (non-FFA only)
-    hudText(eventPlayer if eventPlayer.showHUD and not isFFA else null, "♪", "[{0}] SWAP TEAM {1}".format(buttonString(KEYBIND_SWAP_TEAM), Math.LOTS_OF_SPACES), "{0}".format([Team.1, Team.2][eventPlayer.teamIndex]), HudPosition.LEFT, 5, rgb(37, 212, 252) if eventPlayer.teamIndex == 0 else rgb(239, 47, 82), rgb(210, 210, 210), rgb(255, 255, 255), HudReeval.VISIBILITY_STRING_AND_COLOR)
-    hudSubheader(eventPlayer if eventPlayer.showHUD and not isFFA else null, "•", HudPosition.LEFT, 6, rgba(0, 0, 0, 0), HudReeval.VISIBILITY)
+    hudText(localPlayer if localPlayer.showHUD and not isFFA else null, "♪", "[{0}] SWAP TEAM {1}".format(buttonString(KEYBIND_SWAP_TEAM), Math.LOTS_OF_SPACES), "{0}".format([Team.1, Team.2][localPlayer.teamIndex]), HudPosition.LEFT, 5, rgb(37, 212, 252) if localPlayer.teamIndex == 0 else rgb(239, 47, 82), rgb(210, 210, 210), rgb(255, 255, 255), HudReeval.VISIBILITY_STRING_AND_COLOR)
+    hudSubheader(localPlayer if localPlayer.showHUD and not isFFA else null, "•", HudPosition.LEFT, 6, rgba(0, 0, 0, 0), HudReeval.VISIBILITY)
 
     # create and destroy
-    hudSubheader(eventPlayer if eventPlayer.showHUD else null, "[{0}] CREATE BOT {1}".format(buttonString(KEYBIND_CREATE_BOT), Math.LOTS_OF_SPACES), HudPosition.LEFT, 7, rgb(210, 210, 210), HudReeval.VISIBILITY_AND_STRING)
-    hudSubheader(eventPlayer if eventPlayer.showHUD else null, "[{0}] DESTROY BOT (HOLD TO DESTROY ALL) {1}".format(buttonString(KEYBIND_DESTROY_BOT), Math.LOTS_OF_SPACES), HudPosition.LEFT, 8, rgb(210, 210, 210), HudReeval.VISIBILITY_AND_STRING)
+    hudSubheader(localPlayer if localPlayer.showHUD else null, "[{0}] CREATE BOT {1}".format(buttonString(KEYBIND_CREATE_BOT), Math.LOTS_OF_SPACES), HudPosition.LEFT, 7, rgb(210, 210, 210), HudReeval.VISIBILITY_AND_STRING)
+    hudSubheader(localPlayer if localPlayer.showHUD else null, "[{0}] DESTROY BOT (HOLD TO DESTROY ALL) {1}".format(buttonString(KEYBIND_DESTROY_BOT), Math.LOTS_OF_SPACES), HudPosition.LEFT, 8, rgb(210, 210, 210), HudReeval.VISIBILITY_AND_STRING)
 
 
 rule "Enter Play Mode":
@@ -305,8 +273,7 @@ rule "Enter Play Mode":
     eventPlayer.allowButton(KEYBIND_CYCLE_HERO_FORWARD)
     eventPlayer.allowButton(KEYBIND_SWAP_TEAM)
     eventPlayer.allowButton(KEYBIND_PRESS_BUTTON)
-    eventPlayer.allowButton(KEYBIND_MENU_A)
-    eventPlayer.allowButton(KEYBIND_MENU_B)
+    eventPlayer.allowButton(KEYBIND_MENU)
 
 
 rule "Enter Edit Mode":
@@ -324,15 +291,14 @@ rule "Enter Edit Mode":
     eventPlayer.disallowButton(KEYBIND_CYCLE_HERO_FORWARD)
     eventPlayer.disallowButton(KEYBIND_SWAP_TEAM)
     eventPlayer.disallowButton(KEYBIND_PRESS_BUTTON)
-    eventPlayer.disallowButton(KEYBIND_MENU_A)
-    eventPlayer.disallowButton(KEYBIND_MENU_B)
+    eventPlayer.disallowButton(KEYBIND_MENU)
 
 
 rule "Toggle Mode":
     @Event eachPlayer
     @Condition eventPlayer.isDummy() == false
-    @Condition eventPlayer.isHoldingButton(KEYBIND_MENU_A) == true
-    @Condition eventPlayer.isHoldingButton(KEYBIND_MENU_B) == true
+    @Condition eventPlayer.isHoldingButton(KEYBIND_MENU) == true
+    @Condition eventPlayer.isHoldingButton(KEYBIND_PRESS_BUTTON) == true
 
     eventPlayer.mode = (eventPlayer.mode + 1) % Mode.TOTAL_MODES
     
@@ -419,7 +385,7 @@ rule "Destroy Bot":
     @Condition eventPlayer.mode == Mode.EDIT
     @Condition eventPlayer.isHoldingButton(KEYBIND_DESTROY_BOT) == true
 
-    # BUG: raycast does not hit players in spawn rooms (is there intangibility?)
+    # BUGBUG: raycast does not hit players in spawn rooms (intangibility?)
     eventPlayer.entityHit = raycast(eventPlayer.getEyePosition(), eventPlayer.getEyePosition() + (eventPlayer.getFacingDirection() * 100), getAllPlayers(), eventPlayer, false).getPlayerHit()
     destroyDummy(eventPlayer.entityHit.getTeam(), eventPlayer.entityHit.getSlot())
     eventPlayer.entityHit = null
@@ -437,7 +403,7 @@ rule "Detect Start Holding Button":
     @Event eachPlayer
     @Condition eventPlayer.isDummy() == false
     @Condition eventPlayer.mode == Mode.PLAY
-    @Condition eventPlayer.isHoldingButton(Button.RELOAD) == false
+    @Condition eventPlayer.isHoldingButton(KEYBIND_MENU) == false
     @Condition eventPlayer.isHoldingButton(KEYBIND_PRESS_BUTTON) == true
 
     dummies.pressButton = true
@@ -448,8 +414,8 @@ rule "Actually Start Holding Button":
     @Condition eventPlayer.isDummy() == true
     @Condition eventPlayer.pressButton == true
 
-    # special case: heroes who need to manually place ults
-    if eventPlayer.getCurrentHero() in PLACEMENT_ULTS and eventPlayer.buttonToPress == Button.ULTIMATE:
+    # special case: heroes who need to place ults
+    if eventPlayer.getCurrentHero() in BUILDABLE_ULTS and eventPlayer.buttonToPress == Button.ULTIMATE:
         eventPlayer.forceButtonPress(Button.ULTIMATE)
         wait(1)
         eventPlayer.forceButtonPress(Button.PRIMARY_FIRE)
