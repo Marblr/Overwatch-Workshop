@@ -2,8 +2,8 @@ settings
 {
 	main
 	{
-		Description: "X1Z2T"
-		Mode Name: "Checkpoint Skipping"
+		Description: "Reliably force the payload to skip over a checkpoint, resulting in unintended game mode behavior.\n\nCode: X1Z2T\nLast updated: 2024-10-09"
+		Mode Name: "Payload Checkpoint Skipping"
 	}
 	lobby
 	{
@@ -12,31 +12,12 @@ settings
 	}
 	modes
 	{
-		Escort
+		Team Deathmatch
 		{
 			enabled maps
 			{
+				Workshop Island
 			}
-			Competitive Rules: On
-		}
-		Hybrid
-		{
-			enabled maps
-			{
-				Blizzard World 972777519512068154
-			}
-			Capture Speed Modifier: 500%
-			Competitive Rules: On
-		}
-		disabled Practice Range
-		{
-			Training Partner: Off
-		}
-		General
-		{
-			Game Mode Start: Immediately
-			Hero Limit: Off
-			Tank Role Passive Health Bonus: Always Enabled
 		}
 	}
 	heroes

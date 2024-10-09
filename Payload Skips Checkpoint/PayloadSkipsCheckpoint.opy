@@ -1,33 +1,18 @@
 settings {
     "main": {
-        "description": "X1Z2T",
-        "modeName": "Checkpoint Skipping"
+        "description": "Reliably force the payload to skip over a checkpoint, resulting in unintended game mode behavior.\n\nCode: X1Z2T\nLast updated: 2024-10-09",
+        "modeName": "Payload Checkpoint Skipping"
     },
     "lobby": {
         "team1Slots": 5,
         "team2Slots": 5
     },
     "gamemodes": {
-        "escort": {
-            "enabledMaps": [],
-            "enableCompetitiveRules": true
-        },
-        "hybrid": {
+        "tdm": {
             "enabledMaps": [
-                {"blizzWorld":["morning"]}
-            ],
-            "captureSpeed%": 500,
-            "enableCompetitiveRules": true
+                "workshopIsland"
+            ]
         },
-        "practiceRange": {
-            "enabled": false,
-            "enableTrainingPartner": false
-        },
-        "general": {
-            "gamemodeStartTrigger": "immediately",
-            "heroLimit": "off",
-            "tankPassiveHealthBonus": "alwaysEnabled"
-        }
     },
     "heroes": {
         "allTeams": {
