@@ -8,10 +8,6 @@ settings {
         "team2Slots": 5
     },
     "gamemodes": {
-        "control": {},
-        "escort": {},
-        "hybrid": {},
-        "push": {},
         "tdm": {
             "enabledMaps": [
                 "workshopIsland"
@@ -78,8 +74,8 @@ enum FallImmunity:
 globalvar C_FLOATING_HEROES = [
     Hero.ECHO,
     Hero.SIGMA,
-    Hero.ZENYATTA
-    #Hero.JUNO # overpy is currently unmaintained due to the workshop being neglected
+    Hero.ZENYATTA,
+    Hero.JUNO
 ]
 
 globalvar C_TERMINAL_VELOCITY = 30 # effectively only 29.97 under normal gravity
