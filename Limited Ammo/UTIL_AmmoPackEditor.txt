@@ -1,0 +1,558 @@
+settings
+{
+	main
+	{
+		Description: "Tool allowing the user to place ammo packs in a map and export their positions for use in the Limited Ammo mode.\n\nCode: HGTEH\nLast updated: 2025-01-30"
+		Mode Name: "Ammo Pack Editor"
+	}
+	lobby
+	{
+		Max Team 1 Players: 5
+		Max Team 2 Players: 5
+	}
+	modes
+	{
+		Team Deathmatch
+		{
+			enabled maps
+			{
+				Workshop Island
+			}
+		}
+		General
+		{
+			Hero Limit: Off
+		}
+	}
+	heroes
+	{
+		General
+		{
+			Spawn With Ultimate Ready: On
+			enabled heroes
+			{
+				Mercy
+			}
+		}
+	}
+	extensions
+	{
+		Play More Effects
+	}
+}
+variables {
+    global:
+        0: C_AMMO_PACKS
+        1: allowPackEditing
+        2: isMirrorMode
+        3: i
+        4: v
+        5: p
+        6: n
+        7: v_mirror
+        8: vectors
+        9: effects
+        10: hudTexts
+        11: worldTexts
+        12: vectors_mirror
+        13: effects_mirror
+        14: hudTexts_mirror
+        15: worldTexts_mirror
+        16: selectedIndex
+        17: exportTimer
+}
+subroutines {
+    0: tryCreateNewPack
+    1: tryCreateNewMirroredPack
+}
+rule ("Initialize global variables") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Set Global Variable(C_AMMO_PACKS, Empty Array);
+        Set Global Variable(allowPackEditing, True);
+        Set Global Variable(isMirrorMode, False);
+        Set Global Variable(i, 0);
+        Set Global Variable(v, Vector(0, 0, 0));
+        Set Global Variable(p, Vector(0, 0, 0));
+        Set Global Variable(n, Vector(0, 0, 0));
+        Set Global Variable(v_mirror, Vector(0, 0, 0));
+        Set Global Variable(vectors, Empty Array);
+        Set Global Variable(effects, Empty Array);
+        Set Global Variable(hudTexts, Empty Array);
+        Set Global Variable(worldTexts, Empty Array);
+        Set Global Variable(vectors_mirror, Empty Array);
+        Set Global Variable(effects_mirror, Empty Array);
+        Set Global Variable(hudTexts_mirror, Empty Array);
+        Set Global Variable(worldTexts_mirror, Empty Array);
+        Set Global Variable(selectedIndex, -1);
+        Set Global Variable(exportTimer, 0);
+    }
+}
+
+rule ("Disable Inspector") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        Disable Inspector Recording;
+    }
+}
+
+rule ("Subroutine: Try to Create New Ammo Pack") {
+    event {
+        Subroutine;
+        tryCreateNewPack;
+    }
+    actions {
+        If(Compare(Add(Count Of(Global.vectors), Count Of(Global.vectors_mirror)), >=, 55));
+            Small Message(Host Player, Custom String("  {0} Failed to create pack — reached pack limit! ({1} / {2})", Icon String(Warning), Add(Count Of(Global.vectors), Count Of(Global.vectors_mirror)), 55));
+            Abort;
+        End;
+        If(Array Contains(Global.vectors, Global.v));
+            Small Message(Host Player, Custom String("  {0} Failed to create pack — duplicate position! {1}", Icon String(Warning), Global.v, Null));
+            Abort;
+        End;
+        "good to go!"
+        Modify Global Variable(vectors, Append To Array, Global.v);
+        Create Effect(Local Player, Ring, If-Then-Else(Compare(Index Of Array Value(Global.vectors, Evaluate Once(Global.v)), ==, Global.selectedIndex), Color(Red), Color(Orange)), Global.v, 0.5, Visible To and Color);
+        Modify Global Variable(effects, Append To Array, Last Created Entity);
+        Create In-World Text(If-Then-Else(Is Button Held(Local Player, Button(Reload)), Local Player, Null), Custom String("[{0}]", Index Of Array Value(Global.vectors, Evaluate Once(Global.v)), Null, Null), Add(Global.v, Vector(0, 0.5, 0)), 1, Do Not Clip, Visible To String and Color, If-Then-Else(Compare(Index Of Array Value(Global.vectors, Evaluate Once(Global.v)), ==, Global.selectedIndex), Custom Color(255, 100, 110, 255), Color(White)), Visible Always);
+        Modify Global Variable(worldTexts, Append To Array, Last Text ID);
+        Create HUD Text(Local Player, Null, Custom String("[{0}] {1}{2}", Index Of Array Value(Global.vectors, Evaluate Once(Global.v)), Evaluate Once(Global.v), Custom String("                                                                                                                                                                          ", Null, Null, Null)), Null, Left, 0, Null, If-Then-Else(Compare(Index Of Array Value(Global.vectors, Evaluate Once(Global.v)), ==, Global.selectedIndex), Custom Color(255, 100, 110, 255), Color(White)), Null, Visible To String and Color, Visible Always);
+        Modify Global Variable(hudTexts, Append To Array, Last Text ID);
+    }
+}
+
+rule ("Subroutine: Try to Create New Mirrored Ammo Pack") {
+    event {
+        Subroutine;
+        tryCreateNewMirroredPack;
+    }
+    actions {
+        Modify Global Variable(vectors_mirror, Append To Array, Global.v_mirror);
+        Create Effect(Local Player, Ring, If-Then-Else(Compare(Index Of Array Value(Global.vectors_mirror, Evaluate Once(Global.v_mirror)), ==, Global.selectedIndex), Color(Red), Color(Aqua)), Global.v_mirror, 0.5, Visible To and Color);
+        Modify Global Variable(effects_mirror, Append To Array, Last Created Entity);
+        Create In-World Text(If-Then-Else(Is Button Held(Local Player, Button(Reload)), Local Player, Null), Custom String("[{0}]", Index Of Array Value(Global.vectors_mirror, Evaluate Once(Global.v_mirror)), Null, Null), Add(Global.v_mirror, Vector(0, 0.5, 0)), 1, Do Not Clip, Visible To String and Color, If-Then-Else(Compare(Index Of Array Value(Global.vectors_mirror, Evaluate Once(Global.v_mirror)), ==, Global.selectedIndex), Custom Color(255, 100, 110, 255), Color(Sky Blue)), Visible Always);
+        Modify Global Variable(worldTexts_mirror, Append To Array, Last Text ID);
+        Create HUD Text(Local Player, Null, Custom String("[{0}] {1}{2}", Index Of Array Value(Global.vectors_mirror, Evaluate Once(Global.v_mirror)), Evaluate Once(Global.v_mirror), Custom String("                                                                                                                                                                          ", Null, Null, Null)), Null, Left, 1, Null, If-Then-Else(Compare(Index Of Array Value(Global.vectors_mirror, Evaluate Once(Global.v_mirror)), ==, Global.selectedIndex), Custom Color(255, 100, 110, 255), Custom Color(70, 220, 255, 255)), Null, Visible To String and Color, Visible Always);
+        Modify Global Variable(hudTexts_mirror, Append To Array, Last Text ID);
+    }
+}
+
+rule ("HUD Text") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "ammo pack keybinds."
+        Create HUD Text(Host Player, Null, Custom String("{0} Create Ammo Pack\n{1} Delete Ammo Pack\n{2}", Input Binding String(Button(Secondary Fire)), Input Binding String(Button(Primary Fire)), Custom String("{0} Export Positions to File\n{1}", Input Binding String(Button(Interact)), Custom String("                                                                                                                                                                          ", Null, Null, Null), Null)), Null, Left, -1, Null, Color(White), Null, Visible To and String, Visible Never);
+        "mirror mode keybinds."
+        Create HUD Text(Host Player, Null, Custom String("[{0}] Mirror Mode: {1}", Input Binding String(Button(Ability 2)), If-Then-Else(Global.isMirrorMode, Custom String("ON", Null, Null, Null), Custom String("OFF", Null, Null, Null)), Null), Null, Right, -10, Null, If-Then-Else(Global.isMirrorMode, Color(Aqua), Color(White)), Null, Visible To String and Color, Visible Never);
+        Create HUD Text(Host Player, Null, Custom String("p = {0}", If-Then-Else(Global.isMirrorMode, Global.p, Update Every Frame(Position Of(Host Player))), Null, Null), Null, Right, -10, Null, If-Then-Else(Global.isMirrorMode, Custom Color(170, 140, 255, 255), Custom Color(220, 220, 220, 255)), Null, Visible To String and Color, Visible Never);
+        Create HUD Text(Host Player, Null, Custom String("n = {0}", If-Then-Else(Global.isMirrorMode, Global.n, Update Every Frame(Cross Product(Facing Direction Of(Host Player), Up))), Null, Null), Null, Right, -10, Null, If-Then-Else(Global.isMirrorMode, Custom Color(120, 255, 130, 255), Custom Color(220, 220, 220, 255)), Null, Visible To String and Color, Visible Never);
+        "export timer."
+        Create Progress Bar HUD Text(If-Then-Else(Compare(Global.exportTimer, >, 0), Host Player, Null), Multiply(Divide(Global.exportTimer, 3), 100), Custom String("Hold to Export Ammo Packs...", Null, Null, Null), Top, 10, Custom Color(255, 160, 80, 255), Color(White), Visible To and Values, Default Visibility);
+    }
+}
+
+rule ("Placement Preview") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "point under crosshair."
+        Create Effect(Local Player, Ring, Color(Gray), Update Every Frame(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False)), 0.5, Visible To Position and Radius);
+        "mirrored point."
+        Create Effect(If-Then-Else(Global.isMirrorMode, Local Player, Null), Ring, Color(Gray), Update Every Frame(Subtract(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False), Multiply(Divide(Multiply(2, Dot Product(Subtract(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False), Global.p), Global.n)), Dot Product(Global.n, Global.n)), Global.n))), 0.5, Visible To Position and Radius);
+        Create In-World Text(If-Then-Else(Global.isMirrorMode, Local Player, Null), Custom String("•", Null, Null, Null), Update Every Frame(Subtract(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False), Multiply(Divide(Multiply(2, Dot Product(Subtract(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False), Global.p), Global.n)), Dot Product(Global.n, Global.n)), Global.n))), 2, Do Not Clip, Visible To and Position, Color(Gray), Default Visibility);
+        "mirror axis (beam is rotated 90° counter-clockwise)."
+        Create Beam Effect(If-Then-Else(Global.isMirrorMode, Local Player, Null), Grapple Beam, Subtract(Global.p, Multiply(Vector(Z Component Of(Global.n), 0, Multiply(-1, X Component Of(Global.n))), 100)), Add(Global.p, Multiply(Vector(Z Component Of(Global.n), 0, Multiply(-1, X Component Of(Global.n))), 100)), Color(White), Visible To Position and Radius);
+    }
+}
+
+rule ("Place Ammo Pack") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Has Spawned(Host Player) == True;
+        Global.allowPackEditing == True;
+        Is Button Held(Host Player, Button(Secondary Fire)) == True;
+    }
+    actions {
+        Set Global Variable(v, Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False));
+        Call Subroutine(tryCreateNewPack);
+        If(Global.isMirrorMode);
+            Set Global Variable(v_mirror, Subtract(Global.v, Multiply(Divide(Multiply(2, Dot Product(Subtract(Global.v, Global.p), Global.n)), Dot Product(Global.n, Global.n)), Global.n)));
+            Call Subroutine(tryCreateNewMirroredPack);
+    }
+}
+
+rule ("Select Ammo Pack Near Crosshair") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Has Spawned(Host Player) == True;
+        Global.allowPackEditing == True;
+        Is True For Any(Global.vectors, Compare(Distance Between(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False), Current Array Element), <, 1)) == True;
+    }
+    actions {
+        Set Global Variable(selectedIndex, Index Of Array Value(Global.vectors, First Of(Sorted Array(Global.vectors, Distance Between(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False), Current Array Element)))));
+        Wait Until(Or(Compare(Distance Between(Ray Cast Hit Position(Eye Position(Host Player), Add(Eye Position(Host Player), Multiply(Facing Direction Of(Host Player), 100)), Null, Null, False), Value In Array(Global.vectors, Global.selectedIndex)), >, 1), Is Button Held(Host Player, Button(Primary Fire))), 999999999999999);
+        Wait(0.016, Ignore Condition);
+        Set Global Variable(selectedIndex, -1);
+        Loop If Condition Is True;
+    }
+}
+
+rule ("Remove Selected Ammo Pack") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Has Spawned(Host Player) == True;
+        Global.allowPackEditing == True;
+        Is Button Held(Host Player, Button(Primary Fire)) == True;
+    }
+    actions {
+        If(Compare(Global.selectedIndex, !=, -1));
+            "remove point and effects."
+            Destroy Effect(Value In Array(Global.effects, Global.selectedIndex));
+            Destroy HUD Text(Value In Array(Global.hudTexts, Global.selectedIndex));
+            Destroy In-World Text(Value In Array(Global.worldTexts, Global.selectedIndex));
+            Modify Global Variable(vectors, Remove From Array By Value, Value In Array(Global.vectors, Global.selectedIndex));
+            Modify Global Variable(effects, Remove From Array By Value, Value In Array(Global.effects, Global.selectedIndex));
+            Modify Global Variable(hudTexts, Remove From Array By Value, Value In Array(Global.hudTexts, Global.selectedIndex));
+            Modify Global Variable(worldTexts, Remove From Array By Value, Value In Array(Global.worldTexts, Global.selectedIndex));
+            If(Global.isMirrorMode);
+                Destroy Effect(Value In Array(Global.effects_mirror, Global.selectedIndex));
+                Destroy HUD Text(Value In Array(Global.hudTexts_mirror, Global.selectedIndex));
+                Destroy In-World Text(Value In Array(Global.worldTexts_mirror, Global.selectedIndex));
+                Modify Global Variable(vectors_mirror, Remove From Array By Value, Value In Array(Global.vectors_mirror, Global.selectedIndex));
+                Modify Global Variable(effects_mirror, Remove From Array By Value, Value In Array(Global.effects_mirror, Global.selectedIndex));
+                Modify Global Variable(hudTexts_mirror, Remove From Array By Value, Value In Array(Global.hudTexts_mirror, Global.selectedIndex));
+                Modify Global Variable(worldTexts_mirror, Remove From Array By Value, Value In Array(Global.worldTexts_mirror, Global.selectedIndex));
+    }
+}
+
+rule ("Toggle Mirror Mode") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Has Spawned(Host Player) == True;
+        Is Button Held(Host Player, Button(Ability 2)) == True;
+    }
+    actions {
+        Set Global Variable(allowPackEditing, False);
+        Set Global Variable(isMirrorMode, Not(Global.isMirrorMode));
+        "mirror mode enabled: create mirrored points from existing points."
+        If(Global.isMirrorMode);
+            "TODO: it would be nice if p and n could be set independently of\ntoggling mirror mode, but I'm running out of useable keybinds lol."
+            Set Global Variable(p, Position Of(Host Player));
+            Set Global Variable(n, Cross Product(Facing Direction Of(Host Player), Up));
+            Wait(0.016, Ignore Condition);
+            For Global Variable(i, 0, Count Of(Global.vectors), 1);
+                Set Global Variable(v_mirror, Subtract(Value In Array(Global.vectors, Global.i), Multiply(Divide(Multiply(2, Dot Product(Subtract(Value In Array(Global.vectors, Global.i), Global.p), Global.n)), Dot Product(Global.n, Global.n)), Global.n)));
+                Call Subroutine(tryCreateNewMirroredPack);
+                Wait(0.016, Ignore Condition);
+            End;
+            If(Compare(Add(Count Of(Global.vectors), Count Of(Global.vectors_mirror)), >, 55));
+                Small Message(Host Player, Custom String("  {0} Warning — exceeded pack limit during mirroring! ({1} / {2})", Icon String(Warning), Add(Count Of(Global.vectors), Count Of(Global.vectors_mirror)), 55));
+            End;
+        "mirror mode disabled: destroy all mirrored points and effects."
+        Else;
+            For Global Variable(i, 0, Count Of(Global.vectors_mirror), 1);
+                Destroy Effect(Value In Array(Global.effects_mirror, Global.i));
+                Destroy HUD Text(Value In Array(Global.hudTexts_mirror, Global.i));
+                Destroy In-World Text(Value In Array(Global.worldTexts_mirror, Global.i));
+            End;
+            Wait(0.016, Ignore Condition);
+            Set Global Variable(vectors_mirror, Empty Array);
+            Set Global Variable(effects_mirror, Empty Array);
+            Set Global Variable(hudTexts_mirror, Empty Array);
+            Set Global Variable(worldTexts_mirror, Empty Array);
+        End;
+        Set Global Variable(allowPackEditing, True);
+        "delay before re-fire to prevent spamming."
+        Wait(1, Ignore Condition);
+    }
+}
+
+rule ("Export Ammo Pack Positions to File") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Has Spawned(Host Player) == True;
+        Global.vectors == True;
+        Global.allowPackEditing == True;
+        Is Button Held(Host Player, Button(Interact)) == True;
+    }
+    actions {
+        "hold to confirm export."
+        Chase Global Variable At Rate(exportTimer, 3, 1, None);
+        Wait(3, Abort When False);
+        Enable Inspector Recording;
+        Log To Inspector(Custom String("{0}\n", Current Map, Null, Null));
+        For Global Variable(i, 0, Count Of(Global.vectors), 1);
+            Log To Inspector(Value In Array(Global.vectors, Global.i));
+            Wait(0.016, Ignore Condition);
+        End;
+        If(Global.isMirrorMode);
+            Log To Inspector(Custom String("# Mirrored | p = {0} | n = {1}", Global.p, Global.n, Null));
+            For Global Variable(i, 0, Count Of(Global.vectors_mirror), 1);
+                Log To Inspector(Value In Array(Global.vectors_mirror, Global.i));
+                Wait(0.016, Ignore Condition);
+            End;
+        End;
+        Disable Inspector Recording;
+        Small Message(Host Player, Custom String("  {0} Successfully exported ammo packs!", Icon String(Happy), Null, Null));
+        Stop Chasing Global Variable(exportTimer);
+        Set Global Variable(exportTimer, 0);
+    }
+}
+
+rule ("Export Canceled") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Has Spawned(Host Player) == True;
+        Or(Not(Is Button Held(Host Player, Button(Interact))), Compare(Global.allowPackEditing, ==, False)) == True;
+    }
+    actions {
+        Stop Chasing Global Variable(exportTimer);
+        Set Global Variable(exportTimer, 0);
+    }
+}
+
+rule ("Disable Weapon") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+    }
+    actions {
+        Disallow Button(Event Player, Button(Primary Fire));
+        Disallow Button(Event Player, Button(Secondary Fire));
+    }
+}
+
+rule ("Enable Noclip") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Is Using Ultimate(Event Player) == True;
+    }
+    actions {
+        Disable Movement Collision With Environment(Event Player, True);
+    }
+}
+
+rule ("Disable Noclip") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Is Using Ultimate(Event Player) == False;
+    }
+    actions {
+        Enable Movement Collision With Environment(Event Player);
+    }
+}
+
+rule ("Enable Speed Boost") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Is Button Held(Event Player, Button(Ability 1)) == True;
+    }
+    actions {
+        Set Move Speed(Event Player, 1000);
+    }
+}
+
+rule ("Disable Speed Boost") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Is Button Held(Event Player, Button(Ability 1)) == False;
+    }
+    actions {
+        Set Move Speed(Event Player, 100);
+    }
+}
+
+rule ("Enable Precise Movement") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Is On Ground(Event Player) == True;
+        Is Button Held(Event Player, Button(Crouch)) == True;
+    }
+    actions {
+        Set Move Speed(Event Player, 5);
+    }
+}
+
+rule ("Disable Precise Movement") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Is Button Held(Event Player, Button(Crouch)) == False;
+    }
+    actions {
+        Set Move Speed(Event Player, 100);
+    }
+}
+
+rule ("Snap Position and Facing to Grid") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Is On Ground(Event Player) == True;
+        Is Button Held(Event Player, Button(Crouch)) == True;
+        Is Button Held(Event Player, Button(Melee)) == True;
+    }
+    actions {
+        Teleport(Event Player, Vector(Round To Integer(X Component Of(Position Of(Event Player)), To Nearest), Y Component Of(Position Of(Event Player)), Round To Integer(Z Component Of(Position Of(Event Player)), To Nearest)));
+        Set Facing(Event Player, Direction From Angles(Multiply(Round To Integer(Divide(Horizontal Angle From Direction(Facing Direction Of(Event Player)), 5), To Nearest), 5), 0), To World);
+    }
+}
+
+rule ("Restore Ultimate") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Has Spawned(Event Player) == True;
+        Ultimate Charge Percent(Event Player) < 100;
+    }
+    actions {
+        Set Ultimate Charge(Event Player, 100);
+    }
+}
+
+rule ("Teleport to Other Side of Mirror") {
+    event {
+        Ongoing - Each Player;
+        All;
+        Mercy;
+    }
+    conditions {
+        Is Communicating(Event Player, Hello) == True;
+    }
+    actions {
+        Teleport(Event Player, Subtract(Position Of(Event Player), Multiply(Divide(Multiply(2, Dot Product(Subtract(Position Of(Event Player), Global.p), Global.n)), Dot Product(Global.n, Global.n)), Global.n)));
+    }
+}
+
+disabled rule ("AMMO PACKS: MANUAL LOAD") {
+    event {
+        Ongoing - Global;
+    }
+    actions {
+        "load in custom vectors, optionally with a position and normal for mirroring.\nuseful for editing control stages individually."
+        Set Global Variable(C_AMMO_PACKS, Array(Vector(0, 0, 0)));
+        Set Global Variable(p, Vector(0, 0, 0));
+        Set Global Variable(n, Vector(0, 0, 0));
+    }
+}
+
+disabled rule ("AMMO PACKS: Hanaoka") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Current Map == Map(Hanaoka);
+    }
+    actions {
+        Set Global Variable(C_AMMO_PACKS, Array(Vector(11.90, 39.50, 7.00), Vector(-17.28, 41.50, 7.00), Vector(-24.22, 44.03, -113.99), Vector(11.06, 40.01, -104.28), Vector(-26.94, 43.05, -51.49), Vector(22.25, 41.00, -71.35), Vector(-2.01, 41.50, -9.38), Vector(-4.9, 39.82, -95.17), Vector(-5.06, 38.34, -58.71), Vector(-30.02, 44.02, -74.56), Vector(-30.47, 40.00, -83.98), Vector(15.60, 42.50, -12.81), Vector(-23.58, 40.50, -17.33), Vector(-5.05, 40.02, -33.72), Vector(23.25, 44.50, 5.35), Vector(16.81, 40.07, -38.3)));
+        Set Global Variable(p, Vector(0.00, 39.50, 7.00));
+        Set Global Variable(n, Vector(0.00, 0.00, 1.00));
+    }
+}
+
+disabled rule ("AMMO PACKS: Hollywood") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Or(Compare(Current Map, ==, Map(Hollywood)), Compare(Current Map, ==, Map(Hollywood Halloween))) == True;
+    }
+    actions {
+        Set Global Variable(C_AMMO_PACKS, Array(Vector(-17.7, 1.75, -15.6), Vector(-11.21, 5.01, 41.79), Vector(-18.52, 0.01, 42.49), Vector(9.12, 1.75, 19.79), Vector(11.36, 0.00, 44.40), Vector(-5.78, 1.75, 10.88), Vector(-38.79, 5.75, 25.16), Vector(-34.78, -0.25, 10.32), Vector(-39.51, 1.75, -3.29), Vector(36.36, 2.75, -53.16), Vector(6.76, 1.75, -9.74), Vector(0.30, 1.75, -32.59), Vector(3.01, 2.99, -59.37), Vector(32.05, 1.86, -76.07), Vector(-15.41, 1.73, -62.94), Vector(16.61, 1.75, -40.02), Vector(2.00, 10.75, -28.86), Vector(2.06, 13.00, -66.18), Vector(26.04, 1.62, -93.79), Vector(-15.65, 1.75, -111.67), Vector(6.84, 3.75, -97.19), Vector(-35.29, 1.75, -84.66), Vector(-44.35, 9.75, -106.46), Vector(-19, 9.75, -116.3), Vector(-40, 1.75, -103.29), Vector(-26.72, 1.75, -123.88), Vector(-44.03, 3.75, -137.79), Vector(-18.34, 3.75, -153.27), Vector(-12.56, 4.12, -88.43), Vector(8.70, 3.75, -125.33)));
+    }
+}
+
+rule ("AMMO PACKS: Workshop Island") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Current Map == Map(Workshop Island);
+    }
+    actions {
+        Set Global Variable(C_AMMO_PACKS, Array(Vector(8, 0, 8), Vector(-8, 0, 8), Vector(8, 0, -8), Vector(-8, 0, -8)));
+    }
+}
+
+rule ("Load Ammo Pack Positions") {
+    event {
+        Ongoing - Global;
+    }
+    conditions {
+        Global.C_AMMO_PACKS == True;
+    }
+    actions {
+        Wait(3, Ignore Condition);
+        "if p and n were defined, start in mirror mode."
+        Set Global Variable(isMirrorMode, And(Global.p, Global.n));
+        For Global Variable(i, 0, Count Of(Global.C_AMMO_PACKS), 1);
+            Set Global Variable(v, Value In Array(Global.C_AMMO_PACKS, Global.i));
+            Call Subroutine(tryCreateNewPack);
+            If(Global.isMirrorMode);
+                Set Global Variable(v_mirror, Subtract(Global.v, Multiply(Divide(Multiply(2, Dot Product(Subtract(Global.v, Global.p), Global.n)), Dot Product(Global.n, Global.n)), Global.n)));
+                Call Subroutine(tryCreateNewMirroredPack);
+            End;
+            Wait(0.016, Ignore Condition);
+        End;
+    }
+}
+
