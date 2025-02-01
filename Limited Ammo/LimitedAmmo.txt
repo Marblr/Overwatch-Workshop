@@ -2,7 +2,7 @@ settings
 {
 	main
 	{
-		Description: "It's Overwatch, but everyone has finite ammo.\n\nCode: Q72WR\nLast updated: 2025-01-30"
+		Description: "It's Overwatch, but everyone has finite ammo.\n\nCode: Q72WR\nLast updated: 2025-02-01"
 		Mode Name: "Limited Ammo"
 	}
 	lobby
@@ -110,10 +110,11 @@ variables {
         15: showIndicator
         16: suppressNoAmmoWarning
         17: pauseAmmoManager
-        18: wasInMech
-        19: wasDuplicating
-        20: echoReserveAmmoPrimary
-        21: echoAmmoPrimary
+        18: antiHanzoCheese
+        19: wasInMech
+        20: wasDuplicating
+        21: echoReserveAmmoPrimary
+        22: echoAmmoPrimary
 }
 subroutines {
     0: resetPlayerState
@@ -202,6 +203,7 @@ rule ("Initialize player variables") {
         Set Player Variable(Event Player, showIndicator, True);
         Set Player Variable(Event Player, suppressNoAmmoWarning, False);
         Set Player Variable(Event Player, pauseAmmoManager, False);
+        Set Player Variable(Event Player, antiHanzoCheese, False);
         Set Player Variable(Event Player, wasInMech, False);
         Set Player Variable(Event Player, wasDuplicating, False);
         Set Player Variable(Event Player, echoReserveAmmoPrimary, 0);
@@ -632,6 +634,26 @@ rule ("HACK: Hanzo Disable Abilities") {
     }
 }
 
+rule ("HACK: Hanzo Infinite Ammo") {
+    event {
+        Ongoing - Each Player;
+        All;
+        All;
+    }
+    conditions {
+        Value In Array(All Heroes, (Event Player).heroIndex) == Hero(Hanzo);
+        Is Firing Primary(Event Player) == False;
+        Is Button Held(Event Player, Button(Secondary Fire)) == True;
+    }
+    actions {
+        "2025-02-01: fixes an issue where hanzo could continually hold secondary fire to prevent using ammo.\nthe wait here is essential for this hack to work. this is why you don't write crazy if statements. :)"
+        Wait(0.016, Ignore Condition);
+        Set Player Variable(Event Player, antiHanzoCheese, True);
+        Wait Until(Not(Is Button Held(Event Player, Button(Secondary Fire))), 999999999999999);
+        Set Player Variable(Event Player, antiHanzoCheese, False);
+    }
+}
+
 rule ("HACK: Junkrat Ult Reload") {
     event {
         Ongoing - Each Player;
@@ -1051,7 +1073,7 @@ rule ("Custom Ammo Manager (Hanzo)") {
         "when hanzo stops drawing back his bow, we assume he fired an arrow (with exceptions)."
         Else;
             Wait Until(Not(Is Firing Primary(Event Player)), 999999999999999);
-            If(Not(Or(Or(Or(Or(Or(Or(Or(Is Dead(Event Player), Is Button Held(Event Player, Button(Secondary Fire))), Is Meleeing(Event Player)), And(Compare(Ability Cooldown(Event Player, Button(Ability 2)), <=, 0), Is Button Held(Event Player, Button(Ability 2)))), Is On Wall(Event Player)), Is Using Ultimate(Event Player)), Has Status(Event Player, Stunned)), Has Status(Event Player, Asleep))));
+            If(Not(Or(Or(Or(Or(Or(Or(Or(Is Dead(Event Player), And(Compare((Event Player).antiHanzoCheese, ==, False), Is Button Held(Event Player, Button(Secondary Fire)))), Is Meleeing(Event Player)), And(Compare(Ability Cooldown(Event Player, Button(Ability 2)), <=, 0), Is Button Held(Event Player, Button(Ability 2)))), Is On Wall(Event Player)), Is Using Ultimate(Event Player)), Has Status(Event Player, Stunned)), Has Status(Event Player, Asleep))));
                 Modify Player Variable(Event Player, reserveAmmoPrimary, Subtract, 1);
                 If(And(Global.LOG_STATS, Is Game In Progress));
                     Modify Global Variable At Index(stats_AmmoConsumed, (Event Player).heroIndex, Add, 1);
@@ -1833,20 +1855,6 @@ rule ("STATISTICS: Write Stats to Log File") {
                 Log To Inspector(Value In Array(Global.stats_Highlights, Global.i));
                 Wait(0.016, Ignore Condition);
             End;
-    }
-}
-
-disabled rule ("DEBUG: Current Game Mode") {
-    event {
-        Ongoing - Global;
-    }
-    conditions {
-        Global.DEBUG == True;
-    }
-    actions {
-        "we still can't do direct game mode comparisons..."
-        Create HUD Text(Local Player, Null, Custom String("GAME MODE: {0}fgFFFFFFFF>{1}{2}", Global.bracket, Current Game Mode, Custom String("                                                                                                                                                                          ", Null, Null, Null)), Null, Top, 20, Null, Custom Color(255, 127, 88, 255), Null, Visible To and String, Default Visibility);
-        Create HUD Text(Local Player, Null, Custom String("IS CONTROL? {0}fgFFFFFFFF>{1}\n{2}", Global.bracket, If-Then-Else(Compare(Current Game Mode, ==, Game Mode(Control)), Custom String("TRUE", Null, Null, Null), Custom String("FALSE", Null, Null, Null)), Custom String("                                                                                                                                                                          ", Null, Null, Null)), Null, Top, 20, Null, Custom Color(238, 227, 73, 255), Null, Visible To and String, Default Visibility);
     }
 }
 

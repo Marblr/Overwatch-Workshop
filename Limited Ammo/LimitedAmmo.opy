@@ -1,6 +1,6 @@
 settings {
     "main": {
-        "description": "It's Overwatch, but everyone has finite ammo.\n\nCode: Q72WR\nLast updated: 2025-01-30",
+        "description": "It's Overwatch, but everyone has finite ammo.\n\nCode: Q72WR\nLast updated: 2025-02-01",
         "modeName": "Limited Ammo"
     },
     "lobby": {
@@ -256,6 +256,8 @@ playervar showIndicator = true # hacks for cases where the out of ammo indicator
 playervar suppressNoAmmoWarning = false # hacks for cases where the out of ammo warning should not appear.
 
 playervar pauseAmmoManager = false # hack for junkrat and bastion ults.
+
+playervar antiHanzoCheese = false # hack for hanzo infinite ammo exploit.
 
 playervar wasInMech = false # hack for d.va mech change.
 
@@ -610,6 +612,20 @@ rule "HACK: Hanzo Disable Abilities":
         eventPlayer.forceButtonPress(Button.ABILITY_2)
 
 
+rule "HACK: Hanzo Infinite Ammo":
+    @Event eachPlayer
+    @Condition getAllHeroes()[eventPlayer.heroIndex] == Hero.HANZO
+    @Condition eventPlayer.isFiringPrimaryFire() == false
+    @Condition eventPlayer.isHoldingButton(Button.SECONDARY_FIRE) == true
+
+    # 2025-02-01: fixes an issue where hanzo could continually hold secondary fire to prevent using ammo.
+    # the wait here is essential for this hack to work. this is why you don't write crazy if statements. :)
+    wait()
+    eventPlayer.antiHanzoCheese = true
+    waitUntil(eventPlayer.isHoldingButton(Button.SECONDARY_FIRE) == false, Math.INFINITY)
+    eventPlayer.antiHanzoCheese = false
+
+
 rule "HACK: Junkrat Ult Reload":
     @Event eachPlayer
     @Condition getAllHeroes()[eventPlayer.heroIndex] == Hero.JUNKRAT
@@ -939,7 +955,7 @@ rule "Custom Ammo Manager (Hanzo)":
 
         waitUntil(eventPlayer.isFiringPrimaryFire() == false, Math.INFINITY)
         if not (   eventPlayer.isDead()
-                or eventPlayer.isHoldingButton(Button.SECONDARY_FIRE)
+                or (eventPlayer.antiHanzoCheese == false and eventPlayer.isHoldingButton(Button.SECONDARY_FIRE))
                 or eventPlayer.isMeleeing()
                 or (eventPlayer.getAbilityCooldown(Button.ABILITY_2) <= 0 and eventPlayer.isHoldingButton(Button.ABILITY_2))
                 or eventPlayer.isOnWall()
@@ -1489,16 +1505,6 @@ rule "STATISTICS: Write Stats to Log File":
 ###################
 ###    DEBUG    ###
 ###################
-
-rule "DEBUG: Current Game Mode":
-    @Event global
-    @Condition DEBUG == true
-    @Disabled
-
-    # we still can't do direct game mode comparisons...
-    hudSubheader(localPlayer, "GAME MODE: {0}fgFFFFFFFF>{1}{2}".format(bracket, getCurrentGamemode(), Math.LOTS_OF_SPACES), HudPosition.TOP, 20, rgb(255, 127, 88), HudReeval.VISIBILITY_AND_STRING)
-    hudSubheader(localPlayer, "IS CONTROL? {0}fgFFFFFFFF>{1}\n{2}".format(bracket, "TRUE" if getCurrentGamemode() == Gamemode.CONTROL else "FALSE", Math.LOTS_OF_SPACES), HudPosition.TOP, 20, rgb(238, 227, 73), HudReeval.VISIBILITY_AND_STRING)
-
 
 rule "DEBUG: Server Load":
     @Event global
